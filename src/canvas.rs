@@ -60,7 +60,7 @@ impl Canvas {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Color {
     red: f64,
     green: f64,
@@ -68,7 +68,7 @@ pub struct Color {
 }
 
 impl Color {
-    fn new(red: f64, green: f64, blue: f64) -> Self {
+    pub(crate) fn new(red: f64, green: f64, blue: f64) -> Self {
         Self {
             red,
             green,
@@ -150,7 +150,7 @@ mod canvas_tests {
 
 #[cfg(test)]
 mod color_tests {
-    use crate::canvas::Color;
+    use super::*;
 
     #[test]
     fn test_add_colors() {
