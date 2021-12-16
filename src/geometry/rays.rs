@@ -5,7 +5,7 @@ use crate::tuples::Tuple;
 
 pub(crate) struct Ray {
     origin: Tuple,
-    direction: Tuple
+    pub(crate) direction: Tuple
 }
 
 impl Ray {
@@ -22,7 +22,7 @@ impl Ray {
         }
     }
 
-    fn position(&self, t: f64) -> Tuple {
+    pub(crate) fn position(&self, t: f64) -> Tuple {
         let pos = &self.origin;
         let dir = &self.direction;
         pos.add(&dir.scalar_mult_vec(t))
@@ -84,8 +84,8 @@ pub(crate) fn hit<T>(intersections: &Vec<Intersection<T>>) -> Option<&Intersecti
 }
 
 pub struct Intersection<T> {
-    t_value: f64,
-    object: T,
+    pub(crate) t_value: f64,
+    pub(crate) object: T,
 }
 
 impl<T> Intersection<T> {

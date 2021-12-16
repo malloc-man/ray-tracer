@@ -89,7 +89,7 @@ impl Matrix {
                 result_matrix.val_at(3, 0) as i8)
     }
 
-    fn transpose(&self) -> Matrix {
+    pub(crate) fn transpose(&self) -> Matrix {
         let mut result = Matrix::new(self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
@@ -173,7 +173,7 @@ impl Matrix {
         }
     }
 
-    fn scale(&self, x: f64, y: f64, z: f64) -> Matrix {
+    pub(crate) fn scale(&self, x: f64, y: f64, z: f64) -> Matrix {
         if self.cols != 4 || self.rows != 4 {
             panic!("Can only scale 4x4 matrix");
         } else {
@@ -197,7 +197,7 @@ impl Matrix {
         }
     }
 
-    fn rotate_z(&self, rad: f64) -> Matrix {
+    pub(crate) fn rotate_z(&self, rad: f64) -> Matrix {
         if self.cols != 4 || self.rows != 4 {
             panic!("Can only rotate 4x4 matrix");
         } else {

@@ -43,6 +43,10 @@ impl Tuple {
         }
     }
 
+    pub(crate) fn origin() -> Self {
+        Tuple::point(0.0, 0.0, 0.0)
+    }
+
     fn is_vector(&self) -> bool {
         self.v == 0
     }
@@ -59,7 +63,7 @@ impl Tuple {
         Tuple::new(self.x - other.x, self.y - other.y, self.z - other.z, self.v - other.v)
     }
 
-    fn negate(&self) -> Tuple {
+    pub(crate) fn negate(&self) -> Tuple {
         Tuple::new(-self.x, -self.y, -self.z, -self.v)
     }
 
@@ -113,6 +117,12 @@ impl Tuple {
         } else {
             panic!("Need two vectors to compute cross product");
         }
+    }
+
+    pub(crate) fn reflect_vector(&self, normal: &Tuple) -> Tuple {
+        let dot = 2.0 * self.dot_product(&normal);
+        let nrm = normal.scalar_mult_vec(dot);
+        self.subtract(&nrm)
     }
 }
 
@@ -250,5 +260,19 @@ mod tests {
 
         assert_eq!(v1.cross_product(&v2), cross_1_2);
         assert_eq!(v2.cross_product(&v1), cross_2_1);
+    }
+
+    #[test]
+    fn test_reflect_vector() {
+        let vector = Tuple::vector(1.0, -1.0, 0.0);
+        let normal = Tuple::vector(0.0, 1.0, 0.0);
+        let r = vector.reflect_vector(&normal);
+        assert_eq!(r, Tuple::vector(1.0, 1.0, 0.0));
+
+        let vector = Tuple::vector(0.0, -1.0, 0.0);
+        let p = f64::sqrt(2.0) / 2.0;
+        let normal = Tuple::vector(p, p, 0.0);
+        let r = vector.reflect_vector(&normal);
+        assert_eq!(r, Tuple::vector(1.0, 0.0, 0.0));
     }
 }
