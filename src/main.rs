@@ -1,8 +1,5 @@
 mod canvas;
-
-use std::f64::*;
-use crate::TupleError::*;
-use crate::canvas::*;
+mod matrix;
 
 #[derive(Debug)]
 struct Tuple {
@@ -24,7 +21,7 @@ impl Tuple {
         match v {
             1 => Ok(Tuple::point(x, y, z)),
             0 => Ok(Tuple::vector(x, y, z)),
-            _ => Err(WrongVal(format!("Expected 1 or 0 for `v`, found {}", v)))
+            _ => Err(TupleError::WrongVal(format!("Expected 1 or 0 for `v`, found {}", v)))
         }
     }
 
@@ -70,7 +67,7 @@ impl Tuple {
         if self.is_vector() {
             Ok(Tuple::vector(self.x * scale, self.y * scale, self.z * scale))
         } else {
-            Err(UsedPointAsVector(String::from("Used vector-only method on point tuple")))
+            Err(TupleError::UsedPointAsVector(String::from("Used vector-only method on point tuple")))
         }
     }
 
@@ -78,7 +75,7 @@ impl Tuple {
         if self.is_vector() {
             Ok(Tuple::vector(self.x / scale, self.y / scale, self.z / scale))
         } else {
-            Err(UsedPointAsVector(String::from("Used vector-only method on point tuple")))
+            Err(TupleError::UsedPointAsVector(String::from("Used vector-only method on point tuple")))
         }
     }
 
@@ -86,7 +83,7 @@ impl Tuple {
         if self.is_vector() {
             Ok(f64::sqrt(self.x.powi(2) + self.y.powi(2) + self.z.powi(2) + self.v.pow(2) as f64))
         } else {
-            Err(UsedPointAsVector(String::from("Used vector-only method on point tuple")))
+            Err(TupleError::UsedPointAsVector(String::from("Used vector-only method on point tuple")))
         }
     }
 
@@ -95,7 +92,7 @@ impl Tuple {
             let mag = self.vector_magnitude()?;
             Ok(Tuple::vector(self.x / mag, self.y / mag, self.z / mag))
         } else {
-            Err(UsedPointAsVector(String::from("Used vector-only method on point tuple")))
+            Err(TupleError::UsedPointAsVector(String::from("Used vector-only method on point tuple")))
         }
     }
 
@@ -103,7 +100,7 @@ impl Tuple {
         if self.is_vector() && other.is_vector() {
             Ok(self.x * other.x + self.y * other.y + self.z * other.z)
         } else {
-            Err(UsedPointAsVector(String::from("Need two vectors to compute dot product")))
+            Err(TupleError::UsedPointAsVector(String::from("Need two vectors to compute dot product")))
         }
     }
 
@@ -114,7 +111,7 @@ impl Tuple {
                 self.z * other.x - self.x * other.z,
                 self.x * other.y - self.y * other.x))
         } else {
-            Err(UsedPointAsVector(String::from("Need two vectors to compute cross product")))
+            Err(TupleError::UsedPointAsVector(String::from("Need two vectors to compute cross product")))
         }
     }
 }

@@ -150,7 +150,7 @@ mod canvas_tests {
 
 #[cfg(test)]
 mod color_tests {
-    use crate::Color;
+    use crate::canvas::Color;
 
     #[test]
     fn test_add_colors() {
