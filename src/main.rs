@@ -9,16 +9,15 @@ mod lights;
 mod materials;
 mod colors;
 mod world;
+mod camera;
 
-pub const CANVAS_WIDTH: usize = 100;
-pub const CANVAS_HEIGHT: usize = 100;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut canvas = Canvas::new();
+    let mut canvas = Canvas::new(100, 100);
 
     let wall_z = 10.0;
     let wall_size = 7.0;
-    let pixel_size = wall_size / CANVAS_HEIGHT as f64;
+    let pixel_size = wall_size / canvas.get_height() as f64;
     let half = wall_size / 2.0;
 
     let mut sphere = spheres::new();
@@ -27,9 +26,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ray_origin = point(0.0, 0.0, -5.0);
     let light = Light::new(point(-10.0, 10.0, -10.0), white());
 
-    for y in 0..CANVAS_HEIGHT {
+    for y in 0..canvas.get_height() {
         let world_y = half - pixel_size * y as f64;
-        for x in 0..CANVAS_WIDTH {
+        for x in 0..canvas.get_width() {
             let world_x = -half + pixel_size * x as f64;
             let position = point(world_x, world_y, wall_z);
             let ray = Ray::new(ray_origin, (position - ray_origin).normalize());

@@ -28,21 +28,11 @@ pub fn intersect(sphere: Object, ray: Ray) -> Option<[Intersection; 2]> {
     }
 }
 
-pub(crate) fn hit(intersections: [Intersection; 2]) -> Option<Intersection> {
-    let mut min_t_value = f64::MAX;
-    let mut min_intersection = intersections[0];
-    for intersection in intersections {
-        if intersection.get_t() > 0.0 && intersection.get_t() < min_t_value {
-            min_t_value = intersection.get_t();
-            min_intersection = intersection;
-        }
-        if min_intersection.get_t() < 0.0 && intersection.get_t() > 0.0 {
-            min_t_value = intersection.get_t();
-            min_intersection = intersection;
-        }
-    }
-    if min_intersection.get_t() > 0.0 {
-        Some(min_intersection)
+pub fn hit(intersections: [Intersection; 2]) -> Option<Intersection> {
+    if intersections[0].get_t() >= 0.0 {
+        Some(intersections[0])
+    } else if intersections[1].get_t() >= 0.0 {
+        Some(intersections[1])
     } else {
         None
     }

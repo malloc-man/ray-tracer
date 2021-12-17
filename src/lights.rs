@@ -43,7 +43,7 @@ impl Light {
     }
 }
 
-pub fn lighting(material: &Material, point: Tuple, light: Light, eyev: Tuple, normal: Tuple) -> Color {
+pub fn lighting(material: Material, point: Tuple, light: Light, eyev: Tuple, normal: Tuple) -> Color {
     let effective_color = material.get_color() * light.get_intensity();
 
     let lightv = (light.get_position() - point).normalize();
@@ -88,27 +88,27 @@ mod tests {
         let normalv = vector(0.0, 0.0, -1.0);
         let light = Light::new(point(0.0, 0.0, -10.0),
                                     color(1.0, 1.0, 1.0));
-        let result = lighting(&m, position, light, eyev, normalv);
+        let result = lighting(m, position, light, eyev, normalv);
         assert_eq!(result, color(1.9, 1.9, 1.9));
 
         let eyev = vector(0.0, f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/-2.0);
-        let result = lighting(&m, position, light, eyev, normalv);
+        let result = lighting(m, position, light, eyev, normalv);
         assert_eq!(result, color(1.0, 1.0, 1.0));
 
         let eyev = vector(0.0, 0.0, -1.0);
         let light = Light::new(point(0.0, 10.0, -10.0),
                                     color(1.0, 1.0, 1.0));
-        let result = lighting(&m, position, light, eyev, normalv);
+        let result = lighting(m, position, light, eyev, normalv);
         assert_eq!(result, color(0.7364, 0.7364, 0.7364));
 
         let eyev = vector(0.0, f64::sqrt(2.0)/-2.0, f64::sqrt(2.0)/-2.0);
-        let result = lighting(&m, position, light, eyev, normalv);
+        let result = lighting(m, position, light, eyev, normalv);
         assert_eq!(result, color(1.6364, 1.6364, 1.6364));
 
         let eyev = vector(0.0, 0.0, -1.0);
         let light = Light::new(point(0.0, 0.0, 10.0),
                                     color(1.0, 1.0, 1.0));
-        let result = lighting(&m, position, light, eyev, normalv);
+        let result = lighting(m, position, light, eyev, normalv);
         assert_eq!(result, color(0.1, 0.1, 0.1));
     }
 }

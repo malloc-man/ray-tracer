@@ -120,7 +120,7 @@ impl Matrix4 {
         }
     }
 
-    fn translate(self, x: f64, y: f64, z: f64) -> Self {
+    pub fn translate(self, x: f64, y: f64, z: f64) -> Self {
         transformations::translation(x, y, z) * self
     }
 

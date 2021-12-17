@@ -1,4 +1,4 @@
-use crate::{Color, Material, tuples::*};
+use crate::{Color, Intersection, Material, Ray, spheres, tuples::*};
 use crate::matrix4::Matrix4;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -36,8 +36,8 @@ impl Object {
         self
     }
 
-    pub fn get_material(&self) -> &Material {
-        &self.material
+    pub fn get_material(&self) -> Material {
+        self.material
     }
 
     pub fn set_color(&mut self, color: Color) -> &Self {
@@ -45,11 +45,21 @@ impl Object {
         self
     }
 
+    pub fn get_color(&self) -> Color {
+        self.material.get_color()
+    }
+
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
         let object_point = self.transform.invert() * pt;
         let object_normal = object_point - point(0.0, 0.0, 0.0);
         let world_normal = self.transform.invert().transpose() * object_normal;
         world_normal.vectorize().normalize()
+    }
+
+    pub fn intersect(self, ray: Ray) -> Option<[Intersection; 2]> {
+        match self.shape {
+            Shape::Sphere => spheres::intersect(self, ray),
+        }
     }
 }
 

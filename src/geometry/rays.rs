@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use crate::matrix4::Matrix4;
 use crate::objects::Object;
 use crate::tuples::Tuple;
@@ -43,7 +44,7 @@ impl Ray {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Intersection {
     t_value: f64,
     object: Object,
@@ -63,6 +64,12 @@ impl Intersection {
 
     pub fn get_object(&self) -> Object {
         self.object
+    }
+}
+
+impl PartialOrd for Intersection {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.get_t().partial_cmp(&other.get_t())
     }
 }
 
