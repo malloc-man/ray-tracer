@@ -1,4 +1,4 @@
-use crate::{Color, Light, Material, spheres, transformations, Tuple};
+use crate::{colors::*, Light, Material, spheres, transformations, tuples::*};
 use crate::objects::Object;
 
 struct World {
@@ -17,7 +17,7 @@ impl World {
     fn new_default() -> Self {
         let mut sphere1 = spheres::new();
         let mut material = Material::new();
-        material.set_color(Color::new(0.8, 1.0, 0.6))
+        material.set_color(color(0.8, 1.0, 0.6))
             .set_ambient(0.1)
             .set_diffuse(0.9)
             .set_specular(0.9)
@@ -30,8 +30,8 @@ impl World {
         let objects = vec![sphere1, sphere2];
 
         let light = Light::new(
-            Tuple::point(-10.0, 10.0, -10.0),
-            Color::new(1.0, 1.0, 1.0));
+            point(-10.0, 10.0, -10.0),
+            color(1.0, 1.0, 1.0));
 
         let lights = vec![light];
 

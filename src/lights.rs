@@ -1,5 +1,5 @@
 use crate::Tuple;
-use crate::colors::Color;
+use crate::colors::*;
 use crate::LightType::PointLight;
 use crate::materials::*;
 
@@ -50,8 +50,8 @@ pub fn lighting(material: &Material, point: Tuple, light: Light, eyev: Tuple, no
 
     let ambient = effective_color * material.get_ambient();
 
-    let mut diffuse = Color::black();
-    let mut specular = Color::black();
+    let mut diffuse = black();
+    let mut specular = black();
 
     let light_dot_normal = lightv * normal;
 
@@ -64,7 +64,7 @@ pub fn lighting(material: &Material, point: Tuple, light: Light, eyev: Tuple, no
         let reflect_dot_eye = reflectv * eyev;
 
         if reflect_dot_eye <= 0.0 {
-            specular = Color::new(0.0, 0.0, 0.0);
+            specular = color(0.0, 0.0, 0.0);
         } else {
             let factor = reflect_dot_eye.powf(material.get_shininess());
             specular = light.get_intensity() * material.get_specular() * factor;
@@ -77,37 +77,38 @@ pub fn lighting(material: &Material, point: Tuple, light: Light, eyev: Tuple, no
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tuples::*;
 
     #[test]
     fn test_lighting() {
         let m = Material::new();
-        let position = Tuple::origin();
+        let position = origin();
 
-        let eyev = Tuple::vector(0.0, 0.0, -1.0);
-        let normalv = Tuple::vector(0.0, 0.0, -1.0);
-        let light = Light::new(Tuple::point(0.0, 0.0, -10.0),
-                                    Color::new(1.0, 1.0, 1.0));
+        let eyev = vector(0.0, 0.0, -1.0);
+        let normalv = vector(0.0, 0.0, -1.0);
+        let light = Light::new(point(0.0, 0.0, -10.0),
+                                    color(1.0, 1.0, 1.0));
         let result = lighting(&m, position, light, eyev, normalv);
-        assert_eq!(result, Color::new(1.9, 1.9, 1.9));
+        assert_eq!(result, color(1.9, 1.9, 1.9));
 
-        let eyev = Tuple::vector(0.0, f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/-2.0);
+        let eyev = vector(0.0, f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/-2.0);
         let result = lighting(&m, position, light, eyev, normalv);
-        assert_eq!(result, Color::new(1.0, 1.0, 1.0));
+        assert_eq!(result, color(1.0, 1.0, 1.0));
 
-        let eyev = Tuple::vector(0.0, 0.0, -1.0);
-        let light = Light::new(Tuple::point(0.0, 10.0, -10.0),
-                                    Color::new(1.0, 1.0, 1.0));
+        let eyev = vector(0.0, 0.0, -1.0);
+        let light = Light::new(point(0.0, 10.0, -10.0),
+                                    color(1.0, 1.0, 1.0));
         let result = lighting(&m, position, light, eyev, normalv);
-        assert_eq!(result, Color::new(0.7364, 0.7364, 0.7364));
+        assert_eq!(result, color(0.7364, 0.7364, 0.7364));
 
-        let eyev = Tuple::vector(0.0, f64::sqrt(2.0)/-2.0, f64::sqrt(2.0)/-2.0);
+        let eyev = vector(0.0, f64::sqrt(2.0)/-2.0, f64::sqrt(2.0)/-2.0);
         let result = lighting(&m, position, light, eyev, normalv);
-        assert_eq!(result, Color::new(1.6364, 1.6364, 1.6364));
+        assert_eq!(result, color(1.6364, 1.6364, 1.6364));
 
-        let eyev = Tuple::vector(0.0, 0.0, -1.0);
-        let light = Light::new(Tuple::point(0.0, 0.0, 10.0),
-                                    Color::new(1.0, 1.0, 1.0));
+        let eyev = vector(0.0, 0.0, -1.0);
+        let light = Light::new(point(0.0, 0.0, 10.0),
+                                    color(1.0, 1.0, 1.0));
         let result = lighting(&m, position, light, eyev, normalv);
-        assert_eq!(result, Color::new(0.1, 0.1, 0.1));
+        assert_eq!(result, color(0.1, 0.1, 0.1));
     }
 }

@@ -68,37 +68,37 @@ impl Intersection {
 
 #[cfg(test)]
 mod tests {
-    use crate::tuples::Tuple;
+    use crate::tuples::*;
     use super::*;
     use crate::matrices::transformations;
 
     #[test]
     fn test_position() {
-        let ray = Ray::new(Tuple::point(2.0, 3.0, 4.0),
-                           Tuple::vector(1.0, 0.0, 0.0));
-        assert_eq!(ray.position(0.0), Tuple::point(2.0, 3.0, 4.0));
-        assert_eq!(ray.position(1.0), Tuple::point(3.0, 3.0, 4.0));
-        assert_eq!(ray.position(-1.0), Tuple::point(1.0, 3.0, 4.0));
-        assert_eq!(ray.position(2.5), Tuple::point(4.5, 3.0, 4.0));
+        let ray = Ray::new(point(2.0, 3.0, 4.0),
+                           vector(1.0, 0.0, 0.0));
+        assert_eq!(ray.position(0.0), point(2.0, 3.0, 4.0));
+        assert_eq!(ray.position(1.0), point(3.0, 3.0, 4.0));
+        assert_eq!(ray.position(-1.0), point(1.0, 3.0, 4.0));
+        assert_eq!(ray.position(2.5), point(4.5, 3.0, 4.0));
     }
 
     #[test]
     fn test_ray_translate() {
-        let ray = Ray::new(Tuple::point(1.0, 2.0, 3.0),
-                           Tuple::vector(0.0, 1.0, 0.0));
+        let ray = Ray::new(point(1.0, 2.0, 3.0),
+                           vector(0.0, 1.0, 0.0));
         let m = transformations::translation(3.0, 4.0, 5.0);
         let transformed_ray = ray.transform(m);
-        assert_eq!(transformed_ray.get_origin(), Tuple::point(4.0, 6.0, 8.0));
-        assert_eq!(transformed_ray.get_direction(), Tuple::vector(0.0, 1.0, 0.0));
+        assert_eq!(transformed_ray.get_origin(), point(4.0, 6.0, 8.0));
+        assert_eq!(transformed_ray.get_direction(), vector(0.0, 1.0, 0.0));
     }
 
     #[test]
     fn test_ray_scale() {
-        let ray = Ray::new(Tuple::point(1.0, 2.0, 3.0),
-                           Tuple::vector(0.0, 1.0, 0.0));
+        let ray = Ray::new(point(1.0, 2.0, 3.0),
+                           vector(0.0, 1.0, 0.0));
         let m = transformations::scaling(2.0, 3.0, 4.0);
         let transformed_ray = ray.transform(m);
-        assert_eq!(transformed_ray.get_origin(), Tuple::point(2.0, 6.0, 12.0));
-        assert_eq!(transformed_ray.get_direction(), Tuple::vector(0.0, 3.0, 0.0));
+        assert_eq!(transformed_ray.get_origin(), point(2.0, 6.0, 12.0));
+        assert_eq!(transformed_ray.get_direction(), vector(0.0, 3.0, 0.0));
     }
 }

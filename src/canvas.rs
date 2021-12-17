@@ -2,7 +2,7 @@ use std::fs;
 use std::error::Error;
 use std::io::Write;
 use crate::{CANVAS_HEIGHT, CANVAS_WIDTH};
-use crate::colors::Color;
+use crate::colors::*;
 
 pub struct Canvas {
     pixels: [[Color; CANVAS_WIDTH]; CANVAS_HEIGHT]
@@ -11,7 +11,7 @@ pub struct Canvas {
 impl Canvas {
     pub fn new() -> Self {
         Self {
-            pixels: [[Color::new(0.0, 0.0, 0.0); CANVAS_WIDTH] ; CANVAS_HEIGHT]
+            pixels: [[color(0.0, 0.0, 0.0); CANVAS_WIDTH] ; CANVAS_HEIGHT]
         }
     }
 
@@ -66,15 +66,15 @@ mod tests {
     #[test]
     fn test_initialize() {
         let c = Canvas::new();
-        assert_eq!(c.pixel_at(2, 3), Color::new(0.0, 0.0, 0.0));
+        assert_eq!(c.pixel_at(2, 3), color(0.0, 0.0, 0.0));
     }
 
     #[test]
     fn test_write_pixels() {
         let mut c = Canvas::new();
-        c.write_pixel(2, 3, Color::new(1.0, 0.0, 0.0));
-        assert_eq!(c.pixel_at(2, 3), Color::new(1.0, 0.0, 0.0));
-        assert_eq!(c.pixel_at(0, 0), Color::new(0.0, 0.0, 0.0));
+        c.write_pixel(2, 3, color(1.0, 0.0, 0.0));
+        assert_eq!(c.pixel_at(2, 3), color(1.0, 0.0, 0.0));
+        assert_eq!(c.pixel_at(0, 0), color(0.0, 0.0, 0.0));
     }
 
     #[test]
@@ -82,9 +82,9 @@ mod tests {
         let path = "./testimage.ppm";
         let mut c = Canvas::new();
 
-        c.write_pixel(0, 0, Color::new(1.5, 0.0, 0.0));
-        c.write_pixel(2, 1, Color::new(0.0, 0.5, 0.0));
-        c.write_pixel(4, 2, Color::new(-0.5, 0.0, 1.0));
+        c.write_pixel(0, 0, color(1.5, 0.0, 0.0));
+        c.write_pixel(2, 1, color(0.0, 0.5, 0.0));
+        c.write_pixel(4, 2, color(-0.5, 0.0, 1.0));
 
         c.canvas_to_ppm(path).unwrap();
 

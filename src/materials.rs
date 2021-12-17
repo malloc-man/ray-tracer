@@ -1,4 +1,4 @@
-use crate::colors::Color;
+use crate::colors::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Material {
@@ -12,7 +12,7 @@ pub struct Material {
 impl Material {
     pub fn new() -> Self {
         Self {
-            color: Color::new(1.0, 1.0, 1.0),
+            color: color(1.0, 1.0, 1.0),
             ambient: 0.1,
             diffuse: 0.9,
             specular: 0.9,

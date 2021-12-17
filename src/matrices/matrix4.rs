@@ -174,8 +174,8 @@ impl ops::Mul<Matrix4> for Matrix4 {
 
 impl ops::Mul<Tuple> for Matrix4 {
     type Output = Tuple;
-    fn mul(self, tuple: Tuple) -> Tuple {
-        let other = [[tuple.x], [tuple.y], [tuple.z], [tuple.v as f64]];
+    fn mul(self, other: Tuple) -> Tuple {
+        let other = [[other.x], [other.y], [other.z], [other.v as f64]];
         let mut m = Matrix4::new();
         for i in 0..self.vals.len() {
             for j in 0..other[0].len() {
@@ -186,7 +186,7 @@ impl ops::Mul<Tuple> for Matrix4 {
                 m.write(val, i, j);
             }
         }
-        Tuple::new(m.val_at(0, 0),
+        tuple(m.val_at(0, 0),
                    m.val_at(1, 0),
                    m.val_at(2, 0),
                    m.val_at(3, 0) as i8)
@@ -269,9 +269,9 @@ mod test {
             [8.0, 6.0, 4.0, 1.0],
             [0.0, 0.0, 0.0, 1.0]];
         let m = Matrix4::convert(m_arr);
-        let tuple = Tuple::new(1.0, 2.0, 3.0, 1);
-        let prod = m * tuple;
-        assert_eq!(prod, Tuple::new(18.0, 24.0, 33.0, 1));
+        let tup = tuple(1.0, 2.0, 3.0, 1);
+        let prod = m * tup;
+        assert_eq!(prod, tuple(18.0, 24.0, 33.0, 1));
     }
 
     #[test]
@@ -378,7 +378,7 @@ mod test {
             .rotate_x(PI / 2.0)
             .scale(5.0, 5.0, 5.0)
             .translate(10.0, 5.0, 7.0);
-        let point = Tuple::point(1.0, 0.0, 1.0);
-        assert_eq!(transform * point, Tuple::point(15.0, 0.0, 7.0));
+        let pt = point(1.0, 0.0, 1.0);
+        assert_eq!(transform * pt, point(15.0, 0.0, 7.0));
     }
 }
