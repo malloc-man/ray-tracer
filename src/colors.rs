@@ -1,12 +1,14 @@
+use std::ops;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
-    pub red: f64,
-    pub green: f64,
-    pub blue: f64,
+    red: f64,
+    green: f64,
+    blue: f64,
 }
 
 impl Color {
-    pub(crate) fn new(red: f64, green: f64, blue: f64) -> Self {
+    pub fn new(red: f64, green: f64, blue: f64) -> Self {
         Self {
             red,
             green,
@@ -14,20 +16,60 @@ impl Color {
         }
     }
 
-    pub(crate) fn add(&self, other: &Color) -> Color {
+    pub fn black() -> Self {
+        Self {
+            red: 0.0,
+            green: 0.0,
+            blue: 0.0,
+        }
+    }
+
+    pub fn white() -> Self {
+        Self {
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+        }
+    }
+
+    pub fn get_red(&self) -> f64 {
+        self.red
+    }
+
+    pub fn get_green(&self) -> f64 {
+        self.green
+    }
+
+    pub fn get_blue(&self) -> f64 {
+        self.blue
+    }
+}
+
+impl ops::Add<Color> for Color {
+    type Output = Color;
+    fn add(self, other: Color) -> Color {
         Color::new(self.red + other.red, self.green + other.green, self.blue + other.blue)
     }
+}
 
-    fn subtract(&self, other: &Color) -> Color {
+impl ops::Sub<Color> for Color {
+    type Output = Color;
+    fn sub(self, other: Color) -> Color {
         Color::new(self.red - other.red, self.green - other.green, self.blue - other.blue)
     }
+}
 
-    pub(crate) fn scalar_mul(&self, scale: f64) -> Color {
-        Color::new(self.red * scale, self.green * scale, self.blue * scale)
-    }
-
-    pub(crate) fn mul(&self, other: &Color) -> Color {
+impl ops::Mul<Color> for Color {
+    type Output = Color;
+    fn mul(self, other: Color) -> Color {
         Color::new(self.red * other.red, self.green * other.green, self.blue * other.blue)
+    }
+}
+
+impl ops::Mul<f64> for Color {
+    type Output = Color;
+    fn mul(self, scale: f64) -> Color {
+        Color::new(self.red * scale, self.green * scale, self.blue * scale)
     }
 }
 
@@ -44,8 +86,7 @@ impl PartialEq for Color {
 }
 
 #[cfg(test)]
-mod color_tests {
-    use crate::canvas::*;
+mod tests {
     use crate::colors::Color;
 
     #[test]
@@ -53,7 +94,7 @@ mod color_tests {
         let c1 = Color::new(0.9, 0.6, 0.75);
         let c2 = Color::new(0.7, 0.1, 0.25);
 
-        let sum = c1.add(&c2);
+        let sum = c1 + c2;
         assert_eq!(sum, Color::new(1.6, 0.7, 1.0));
     }
 
@@ -62,14 +103,14 @@ mod color_tests {
         let c1 = Color::new(0.9, 0.6, 0.75);
         let c2 = Color::new(0.7, 0.1, 0.25);
 
-        let diff = c1.subtract(&c2);
+        let diff = c1 - c2;
         assert_eq!(diff, Color::new(0.2, 0.5, 0.5));
     }
 
     #[test]
     fn test_scalar_mul() {
         let c1 = Color::new(0.2, 0.3, 0.4);
-        assert_eq!(c1.scalar_mul(2.0), Color::new(0.4, 0.6, 0.8));
+        assert_eq!(c1 * 2.0, Color::new(0.4, 0.6, 0.8));
     }
 
     #[test]
@@ -77,6 +118,6 @@ mod color_tests {
         let c1 = Color::new(1.0, 0.2, 0.4);
         let c2 = Color::new(0.9, 1.0, 0.1);
 
-        assert_eq!(c1.mul(&c2), Color::new(0.9, 0.2, 0.04));
+        assert_eq!(c1 * c2, Color::new(0.9, 0.2, 0.04));
     }
 }
