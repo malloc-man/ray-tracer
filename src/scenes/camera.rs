@@ -8,6 +8,7 @@ pub struct Camera {
     vsize: usize,
     field_of_view: f64,
     transform: Matrix4,
+    inverse_transform: Matrix4,
     pixel_size: f64,
     half_width: f64,
     half_height: f64
@@ -20,6 +21,7 @@ impl Camera {
             vsize,
             field_of_view,
             transform: Matrix4::identity(),
+            inverse_transform: Matrix4::identity(),
             pixel_size: 0.0,
             half_width: 0.0,
             half_height: 0.0,
@@ -41,7 +43,8 @@ impl Camera {
     }
 
     pub fn set_transform(&mut self, transform: Matrix4) {
-        self.transform = transform
+        self.transform = transform;
+        self.inverse_transform = transform.invert();
     }
 
     fn ray_for_pixel(&self, x: usize, y: usize) -> Ray {
@@ -50,8 +53,8 @@ impl Camera {
         let world_x = self.half_width - xoffset;
         let world_y = self.half_height - yoffset;
 
-        let pixel = self.transform.invert() * point(world_x, world_y, -1.0);
-        let origin = self.transform.invert() * origin();
+        let pixel = self.inverse_transform * point(world_x, world_y, -1.0);
+        let origin = self.inverse_transform * origin();
         let direction = (pixel - origin).normalize();
 
         Ray::new(origin, direction)

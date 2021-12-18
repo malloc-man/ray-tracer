@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
 
-    let mut camera = Camera::new(500, 250, PI/3.0);
+    let mut camera = Camera::new(1920, 1080, PI/3.0);
     camera.set_transform(view_transform(
         point(0.0, 1.5, -5.0),
         point(0.0, 1.0, 0.0),

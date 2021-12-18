@@ -8,7 +8,7 @@ pub fn new() -> Object {
 
 pub fn intersect(sphere: Object, ray: Ray) -> Option<[Intersection; 2]> {
 
-    let transformed_ray = ray.transform(sphere.get_transform().invert());
+    let transformed_ray = ray.transform(sphere.get_inverse_transform());
 
     let vec_from_sphere_to_ray = transformed_ray.get_origin() - origin();
     let a = transformed_ray.get_direction() * transformed_ray.get_direction();

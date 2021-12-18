@@ -6,6 +6,7 @@ use crate::matrix4::Matrix4;
 pub struct Object {
     material: Material,
     transform: Matrix4,
+    inverse_transform: Matrix4,
     shape: Shape,
 }
 
@@ -19,17 +20,23 @@ impl Object {
         Self {
             material: Material::new(),
             transform: Matrix4::identity(),
+            inverse_transform: Matrix4::identity(),
             shape,
         }
     }
 
     pub fn set_transform(&mut self, transform: Matrix4) -> &Self {
         self.transform = transform;
+        self.inverse_transform = transform.invert();
         self
     }
 
     pub fn get_transform(&self) -> Matrix4 {
         self.transform
+    }
+
+    pub fn get_inverse_transform(&self) -> Matrix4 {
+        self.inverse_transform
     }
 
     pub fn set_material(&mut self, material: Material) -> &Self {
@@ -51,9 +58,9 @@ impl Object {
     }
 
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
-        let object_point = self.transform.invert() * pt;
+        let object_point = self.inverse_transform * pt;
         let object_normal = object_point - point(0.0, 0.0, 0.0);
-        let world_normal = self.transform.invert().transpose() * object_normal;
+        let world_normal = self.inverse_transform.transpose() * object_normal;
         world_normal.vectorize().normalize()
     }
 
