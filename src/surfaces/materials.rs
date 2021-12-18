@@ -1,4 +1,4 @@
-use crate::colors::*;
+use crate::surfaces::colors::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Material {

@@ -77,7 +77,7 @@ impl Camera {
 #[cfg(test)]
 mod tests {
     use crate::transformations::view_transform;
-    use crate::colors::*;
+    use crate::surfaces::colors::*;
     use super::*;
     use std::f64::consts::PI;
 

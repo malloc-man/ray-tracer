@@ -1,20 +1,21 @@
 use std::error::Error;
 use std::f64::consts::PI;
-use {colors::*, matrices::*, shapes::*};
+use {matrices::*, shapes::*};
 use matrices::tuples::*;
 use rays::*;
 use scenes::camera::*;
 use scenes::lights::*;
 use scenes::world::*;
-use shapes::materials::*;
+use surfaces::colors::*;
+use surfaces::materials::*;
 use crate::matrix4::Matrix4;
 use crate::transformations::view_transform;
 
 mod matrices;
 mod shapes;
-mod colors;
 mod scenes;
 pub mod rays;
+mod surfaces;
 
 
 fn main() -> Result<(), Box<dyn Error>> {

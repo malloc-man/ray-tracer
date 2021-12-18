@@ -1,8 +1,9 @@
-use crate::{colors::*, Intersection, Material, spheres, transformations};
+use crate::{Intersection, Material, spheres, transformations};
 use crate::matrices::tuples::*;
 use crate::objects::Object;
 use crate::rays::*;
 use crate::scenes::lights::*;
+use crate::surfaces::colors::*;
 
 pub struct World {
     objects: Vec<Object>,
@@ -136,9 +137,10 @@ fn prepare_computations (intersection: Intersection, ray: Ray) -> Computations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{colors::*, Intersection, Light, Matrix4, Ray, spheres};
+    use crate::{Intersection, Light, Matrix4, Ray, spheres};
     use crate::matrices::tuples::*;
     use crate::objects::Shape::Sphere;
+    use crate::surfaces::colors::*;
     use crate::transformations::translation;
     use super::*;
 

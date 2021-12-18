@@ -1,7 +1,7 @@
 use std::fs;
 use std::error::Error;
 use std::io::Write;
-use crate::colors::*;
+use crate::surfaces::colors::*;
 
 pub struct Canvas {
     height: usize,

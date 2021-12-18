@@ -1,7 +1,7 @@
 use crate::Tuple;
-use crate::colors::*;
+use crate::surfaces::colors::*;
 use crate::LightType::PointLight;
-use crate::shapes::materials::*;
+use crate::surfaces::materials::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Light {

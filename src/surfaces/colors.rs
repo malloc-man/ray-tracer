@@ -93,7 +93,7 @@ impl PartialEq for Color {
 
 #[cfg(test)]
 mod tests {
-    use crate::colors::*;
+    use crate::surfaces::colors::*;
 
     #[test]
     fn test_add_colors() {
