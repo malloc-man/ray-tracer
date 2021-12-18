@@ -68,7 +68,7 @@ impl World {
         let mut color = black();
         for light in &self.lights {
             let shadowed = self.is_shadowed(comps.over_point);
-            color += lighting(comps.object.get_material(), comps.point, *light, comps.eyev, comps.normalv, shadowed);
+            color += lighting(comps.object.get_material(), comps.object, *light, comps.point, comps.eyev, comps.normalv, shadowed);
         }
         color
     }
