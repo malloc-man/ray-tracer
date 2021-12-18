@@ -9,13 +9,12 @@ pub struct Tuple {
 }
 
 pub fn tuple(x: f64, y: f64, z: f64, v: i8) -> Tuple {
-    if v != 1 && v != 0 {
-        panic!("Fourth argument must be 0 (vector) or 1 (point)")
-    }
     if v == 1 {
         point(x, y, z)
-    } else {
+    } else if v == 0 {
         vector(x, y, z)
+    } else {
+        panic!("Attempted to create tuple with v: {}. Must be 0 or 1", v);
     }
 }
 

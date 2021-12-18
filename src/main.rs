@@ -1,5 +1,8 @@
 use std::error::Error;
-use {geometry::*, geometry::rays::*, canvas::*, tuples::*, matrices::*, materials::*, lights::*, colors::*};
+use std::f64::consts::PI;
+use {geometry::*, geometry::rays::*, tuples::*, matrices::*, materials::*, lights::*, colors::*, camera::*, world::*};
+use crate::matrix4::Matrix4;
+use crate::transformations::view_transform;
 
 mod tuples;
 mod canvas;
@@ -13,36 +16,65 @@ mod camera;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut canvas = Canvas::new(100, 100);
+    let mut floor = spheres::new();
+    floor.set_transform(transformations::scaling(10.0, 0.01, 10.0));
+    floor.set_color(color(1.0, 0.9, 0.9));
+    floor.get_material().set_specular(0.0);
 
-    let wall_z = 10.0;
-    let wall_size = 7.0;
-    let pixel_size = wall_size / canvas.get_height() as f64;
-    let half = wall_size / 2.0;
+    let mut left_wall = spheres::new();
+    left_wall.set_transform(Matrix4::identity()
+        .scale(10.0, 0.01, 10.0)
+        .rotate_x(PI/2.0)
+        .rotate_y(-PI/4.0)
+        .translate(0.0, 0.0, 5.0));
+    left_wall.set_material(floor.get_material());
 
-    let mut sphere = spheres::new();
-    sphere.set_color(color(1.0, 0.2, 1.0));
+    let mut right_wall = spheres::new();
+    right_wall.set_transform(Matrix4::identity()
+        .scale(10.0, 0.01, 10.0)
+        .rotate_x(PI/2.0)
+        .rotate_y(PI/4.0)
+        .translate(0.0, 0.0, 5.0));
+    right_wall.set_material(floor.get_material());
 
-    let ray_origin = point(0.0, 0.0, -5.0);
-    let light = Light::new(point(-10.0, 10.0, -10.0), white());
+    let mut middle = spheres::new();
+    middle.set_transform(Matrix4::identity()
+        .translate(-0.5, 1.0, 0.5));
+    middle.set_color(color(0.1, 1.0, 0.5));
+    middle.get_material().set_diffuse(0.7);
+    middle.get_material().set_specular(0.3);
 
-    for y in 0..canvas.get_height() {
-        let world_y = half - pixel_size * y as f64;
-        for x in 0..canvas.get_width() {
-            let world_x = -half + pixel_size * x as f64;
-            let position = point(world_x, world_y, wall_z);
-            let ray = Ray::new(ray_origin, (position - ray_origin).normalize());
-            if let Some(xs) = spheres::intersect(sphere, ray) {
-                if let Some(hit) = spheres::hit(xs) {
-                    let point = ray.position(hit.get_t());
-                    let normal = sphere.normal_at(point);
-                    let eye = -ray.get_direction();
-                    let new_color = lighting(hit.get_object().get_material(), point, light,eye, normal);
-                    canvas.write_pixel(x, y, new_color);
-                }
-            }
-        }
-    }
-    canvas.canvas_to_ppm("./image.ppm")?;
+    let mut right = spheres::new();
+    right.set_transform(Matrix4::identity()
+        .scale(0.5, 0.5, 0.5)
+        .translate(1.5, 0.5, -0.5));
+    right.set_color(color(0.5, 1.0, 0.1));
+    right.get_material().set_diffuse(0.7);
+    right.get_material().set_specular(0.3);
+
+    let mut left = spheres::new();
+    left.set_transform(Matrix4::identity()
+        .scale(0.33, 0.33, 0.33)
+        .translate(-1.5, 0.33, -0.75));
+    left.set_color(color(1.0, 0.8, 0.1));
+    left.get_material().set_diffuse(0.7);
+    left.get_material().set_specular(0.3);
+
+    let objects = vec![floor, left_wall, right_wall, middle, right, left];
+
+    let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
+
+    let mut camera = Camera::new(500, 250, PI/3.0);
+    camera.set_transform(view_transform(
+        point(0.0, 1.5, -5.0),
+        point(0.0, 1.0, 0.0),
+        vector(0.0, 1.0, 0.0)));
+
+    let world = World::new(objects, lights);
+
+    let image = camera.render(&world);
+
+    image.canvas_to_ppm("./image.ppm");
+
     Ok(())
 }

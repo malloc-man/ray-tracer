@@ -174,8 +174,8 @@ impl ops::Mul<Matrix4> for Matrix4 {
 
 impl ops::Mul<Tuple> for Matrix4 {
     type Output = Tuple;
-    fn mul(self, other: Tuple) -> Tuple {
-        let other = [[other.x], [other.y], [other.z], [other.v as f64]];
+    fn mul(self, tup: Tuple) -> Tuple {
+        let other = [[tup.x], [tup.y], [tup.z], [tup.v as f64]];
         let mut m = Matrix4::new();
         for i in 0..self.vals.len() {
             for j in 0..other[0].len() {
@@ -186,10 +186,12 @@ impl ops::Mul<Tuple> for Matrix4 {
                 m.write(val, i, j);
             }
         }
-        tuple(m.val_at(0, 0),
-                   m.val_at(1, 0),
-                   m.val_at(2, 0),
-                   m.val_at(3, 0) as i8)
+        if tup.is_vector() {
+            vector(m.val_at(0, 0),m.val_at(1, 0),m.val_at(2, 0))
+        } else {
+            point(m.val_at(0, 0),m.val_at(1, 0),m.val_at(2, 0))
+        }
+
     }
 }
 

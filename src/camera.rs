@@ -1,7 +1,6 @@
-use crate::{matrix4::*, Ray, tuples::*, canvas::*, world::*, colors::*};
-use std::f64::consts::PI;
+use crate::{matrix4::*, Ray, tuples::*, canvas::*, world::*};
 
-struct Camera {
+pub struct Camera {
     hsize: usize,
     vsize: usize,
     field_of_view: f64,
@@ -12,7 +11,7 @@ struct Camera {
 }
 
 impl Camera {
-    fn new(hsize: usize, vsize: usize, field_of_view: f64) -> Self {
+    pub fn new(hsize: usize, vsize: usize, field_of_view: f64) -> Self {
         Self {
             hsize,
             vsize,
@@ -38,7 +37,7 @@ impl Camera {
         self
     }
 
-    fn set_transform(&mut self, transform: Matrix4) {
+    pub fn set_transform(&mut self, transform: Matrix4) {
         self.transform = transform
     }
 
@@ -55,7 +54,7 @@ impl Camera {
         Ray::new(origin, direction)
     }
 
-    fn render(&self, world: &World) -> Canvas {
+    pub fn render(&self, world: &World) -> Canvas {
         let mut image = Canvas::new(self.hsize, self.vsize);
 
         for y in 0..self.vsize {
@@ -72,7 +71,9 @@ impl Camera {
 #[cfg(test)]
 mod tests {
     use crate::transformations::view_transform;
+    use crate::colors::*;
     use super::*;
+    use std::f64::consts::PI;
 
     #[test]
     fn test_pixel_size_horizontal_canvas() {
