@@ -67,7 +67,8 @@ impl World {
     fn shade_hit(&self, comps: Computations) -> Color {
         let mut color = black();
         for light in &self.lights {
-            color += lighting(comps.object.get_material(), comps.point, *light, comps.eyev, comps.normalv);
+            let shadowed = self.is_shadowed(comps.over_point);
+            color += lighting(comps.object.get_material(), comps.point, *light, comps.eyev, comps.normalv, shadowed);
         }
         color
     }
@@ -81,6 +82,19 @@ impl World {
             black()
         }
     }
+
+    pub fn is_shadowed(&self, point: Tuple) -> bool {
+        let vector = self.lights[0].get_position() - point;
+        let distance = vector.magnitude();
+        let ray = Ray::new(point, vector.normalize());
+        let intersections = self.intersect_world(ray);
+        if let Some(hit) = self.hit_world(intersections) {
+            if hit.get_t() < distance {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 struct Computations {
@@ -90,6 +104,7 @@ struct Computations {
     eyev: Tuple,
     normalv: Tuple,
     inside: bool,
+    over_point: Tuple,
 }
 
 impl Computations {
@@ -101,6 +116,7 @@ impl Computations {
             eyev,
             normalv,
             inside,
+            over_point: point + normalv * 0.00001,
         }
     }
 }
@@ -120,8 +136,10 @@ fn prepare_computations (intersection: Intersection, ray: Ray) -> Computations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{colors::*, Intersection, Light, Ray, spheres};
+    use crate::{colors::*, Intersection, Light, Matrix4, Ray, spheres};
     use crate::matrices::tuples::*;
+    use crate::objects::Shape::Sphere;
+    use crate::transformations::translation;
     use super::*;
 
     #[test]
@@ -152,6 +170,20 @@ mod tests {
     }
 
     #[test]
+    fn test_precompute_offsets_point() {
+        let ray = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
+        let mut shape = spheres::new();
+        shape.set_transform(translation(0.0, 0.0, 1.0));
+
+        let i = Intersection::new(5.0, shape);
+
+        let comps = prepare_computations(i, ray);
+
+        assert!(comps.over_point.z < -0.00001/2.0);
+        assert!(comps.point.z > comps.over_point.z);
+    }
+
+    #[test]
     fn test_shade_hit() {
         let w = World::new_default();
         let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
@@ -174,6 +206,23 @@ mod tests {
 
         let comps = prepare_computations(i, r);
         assert_eq!(w.shade_hit(comps), color(0.90498, 0.90498, 0.90498));
+    }
+
+    #[test]
+    fn test_shade_hit_in_shadow() {
+        let mut w = World::new(vec![], vec![]);
+        w.lights.push(Light::new(point(0.0, 0.0, -10.0), white()));
+        w.objects.push(spheres::new());
+        w.objects.push(spheres::new());
+        w.objects[1].set_transform(Matrix4::identity().translate(0.0, 0.0, 10.0));
+
+        let ray = Ray::new(point(0.0, 0.0, 5.0), vector(0.0, 0.0, 1.0));
+        let i = Intersection::new(4.0, w.objects[1]);
+
+        let comps = prepare_computations(i, ray);
+        let c = w.shade_hit(comps);
+
+        assert_eq!(c, color(0.1, 0.1, 0.1));
     }
 
     #[test]
@@ -207,5 +256,19 @@ mod tests {
 
         let c = w.color_at(r);
         assert_eq!(c, w.objects[1].get_color());
+    }
+
+    #[test]
+    fn test_no_shadow() {
+        let w = World::new_default();
+        assert!(!w.is_shadowed(point(0.0, 10.0, 0.0)));
+        assert!(!w.is_shadowed(point(-20.0, 20.0, -20.0)));
+        assert!(!w.is_shadowed(point(-2.0, 2.0, -2.0)));
+    }
+
+    #[test]
+    fn test_shadowed() {
+        let w = World::new_default();
+        assert!(w.is_shadowed(point(10.0, -10.0, 10.0)));
     }
 }
