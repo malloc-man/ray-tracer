@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use crate::matrix4::Matrix4;
 use crate::objects::Object;
-use crate::tuples::Tuple;
+use crate::matrices::tuples::Tuple;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Ray {
@@ -75,7 +75,7 @@ impl PartialOrd for Intersection {
 
 #[cfg(test)]
 mod tests {
-    use crate::tuples::*;
+    use crate::matrices::tuples::*;
     use super::*;
     use crate::matrices::transformations;
 

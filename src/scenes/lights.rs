@@ -1,7 +1,7 @@
 use crate::Tuple;
 use crate::colors::*;
 use crate::LightType::PointLight;
-use crate::materials::*;
+use crate::shapes::materials::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Light {
@@ -77,7 +77,7 @@ pub fn lighting(material: Material, point: Tuple, light: Light, eyev: Tuple, nor
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tuples::*;
+    use crate::matrices::tuples::*;
 
     #[test]
     fn test_lighting() {

@@ -78,7 +78,7 @@ impl Canvas {
 #[cfg(test)]
 mod tests {
     use std::io::Read;
-    use crate::canvas::*;
+    use crate::scenes::canvas::*;
 
     #[test]
     fn test_initialize() {

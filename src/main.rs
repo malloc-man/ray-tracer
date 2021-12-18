@@ -1,18 +1,20 @@
 use std::error::Error;
 use std::f64::consts::PI;
-use {geometry::*, geometry::rays::*, tuples::*, matrices::*, materials::*, lights::*, colors::*, camera::*, world::*};
+use {colors::*, matrices::*, shapes::*};
+use matrices::tuples::*;
+use rays::*;
+use scenes::camera::*;
+use scenes::lights::*;
+use scenes::world::*;
+use shapes::materials::*;
 use crate::matrix4::Matrix4;
 use crate::transformations::view_transform;
 
-mod tuples;
-mod canvas;
 mod matrices;
-mod geometry;
-mod lights;
-mod materials;
+mod shapes;
 mod colors;
-mod world;
-mod camera;
+mod scenes;
+pub mod rays;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -74,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let image = camera.render(&world);
 
-    image.canvas_to_ppm("./image.ppm");
+    image.canvas_to_ppm("./image.ppm")?;
 
     Ok(())
 }

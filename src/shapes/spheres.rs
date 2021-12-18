@@ -1,5 +1,6 @@
-use crate::{Intersection, Ray, tuples::*};
-use crate::geometry::objects::{Object, Shape};
+use crate::{Intersection, Ray};
+use crate::shapes::objects::{Object, Shape};
+use crate::matrices::tuples::*;
 
 pub fn new() -> Object {
     Object::new(Shape::Sphere)

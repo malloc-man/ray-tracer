@@ -1,4 +1,5 @@
-use crate::{Color, Intersection, Material, Ray, spheres, tuples::*};
+use crate::{Color, Intersection, Material, Ray, spheres};
+use crate::matrices::tuples::*;
 use crate::matrix4::Matrix4;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -66,9 +67,10 @@ impl Object {
 #[cfg(test)]
 mod tests {
     use std::f64::consts::PI;
-    use crate::{transformations, tuples::*};
-    use crate::geometry::objects::Object;
-    use crate::geometry::objects::Shape::Sphere;
+    use crate::transformations;
+    use crate::shapes::objects::Object;
+    use crate::shapes::objects::Shape::Sphere;
+    use crate::matrices::tuples::*;
 
     #[test]
     fn test_normal() {

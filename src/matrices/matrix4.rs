@@ -1,7 +1,7 @@
 use std::ops;
 use crate::matrices::matrix3::Matrix3;
 use crate::matrices::transformations;
-use crate::tuples::*;
+use crate::matrices::tuples::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix4 {
