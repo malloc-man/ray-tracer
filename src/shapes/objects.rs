@@ -1,4 +1,4 @@
-use crate::{Color, Intersection, Material, Ray, spheres};
+use crate::{Color, Intersection, Material, Ray, spheres, planes};
 use crate::matrices::tuples::*;
 use crate::matrix4::Matrix4;
 
@@ -7,12 +7,14 @@ pub struct Object {
     material: Material,
     transform: Matrix4,
     inverse_transform: Matrix4,
+    inverse_transform_transposed: Matrix4,
     shape: Shape,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Shape {
     Sphere,
+    Plane,
 }
 
 impl Object {
@@ -21,6 +23,7 @@ impl Object {
             material: Material::new(),
             transform: Matrix4::identity(),
             inverse_transform: Matrix4::identity(),
+            inverse_transform_transposed: Matrix4::identity(),
             shape,
         }
     }
@@ -28,6 +31,7 @@ impl Object {
     pub fn set_transform(&mut self, transform: Matrix4) -> &Self {
         self.transform = transform;
         self.inverse_transform = transform.invert();
+        self.inverse_transform_transposed = self.inverse_transform.transpose();
         self
     }
 
@@ -37,6 +41,10 @@ impl Object {
 
     pub fn get_inverse_transform(&self) -> Matrix4 {
         self.inverse_transform
+    }
+
+    pub fn get_inverse_transform_transposed(&self) -> Matrix4 {
+        self.inverse_transform_transposed
     }
 
     pub fn set_material(&mut self, material: Material) -> &Self {
@@ -58,15 +66,20 @@ impl Object {
     }
 
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
-        let object_point = self.inverse_transform * pt;
-        let object_normal = object_point - point(0.0, 0.0, 0.0);
-        let world_normal = self.inverse_transform.transpose() * object_normal;
+        let local_point = self.inverse_transform * pt;
+        let local_normal = match self.shape {
+            Shape::Sphere =>  spheres::normal_at(local_point),
+            Shape::Plane => planes::normal_at(),
+        };
+        let world_normal = self.inverse_transform_transposed * local_normal;
         world_normal.vectorize().normalize()
     }
 
-    pub fn intersect(self, ray: Ray) -> Option<[Intersection; 2]> {
+    pub fn intersect(self, ray: Ray) -> Vec<Intersection> {
+        let local_ray = ray.transform(self.get_inverse_transform());
         match self.shape {
-            Shape::Sphere => spheres::intersect(self, ray),
+            Shape::Sphere => spheres::intersect(self, local_ray),
+            Shape::Plane => planes::intersect(self, local_ray),
         }
     }
 }
@@ -80,7 +93,7 @@ mod tests {
     use crate::matrices::tuples::*;
 
     #[test]
-    fn test_normal() {
+    fn test_sphere_normal() {
         let sphere = Object::new(Sphere);
 
         assert_eq!(sphere.normal_at(point(1.0, 0.0, 0.0)), vector(1.0, 0.0, 0.0));
@@ -95,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn test_normal_transformed() {
+    fn test_sphere_normal_transformed() {
         let mut sphere = Object::new(Sphere);
         sphere.set_transform(transformations::translation(0.0, 1.0, 0.0));
         assert_eq!(sphere.normal_at(point(0.0, 1.70711, -0.70711)),

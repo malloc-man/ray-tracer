@@ -19,26 +19,9 @@ mod surfaces;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut floor = spheres::new();
-    floor.set_transform(transformations::scaling(10.0, 0.01, 10.0));
+    let mut floor = planes::new();
     floor.set_color(color(1.0, 0.9, 0.9));
     floor.get_material().set_specular(0.0);
-
-    let mut left_wall = spheres::new();
-    left_wall.set_transform(Matrix4::identity()
-        .scale(10.0, 0.01, 10.0)
-        .rotate_x(PI/2.0)
-        .rotate_y(-PI/4.0)
-        .translate(0.0, 0.0, 5.0));
-    left_wall.set_material(floor.get_material());
-
-    let mut right_wall = spheres::new();
-    right_wall.set_transform(Matrix4::identity()
-        .scale(10.0, 0.01, 10.0)
-        .rotate_x(PI/2.0)
-        .rotate_y(PI/4.0)
-        .translate(0.0, 0.0, 5.0));
-    right_wall.set_material(floor.get_material());
 
     let mut middle = spheres::new();
     middle.set_transform(Matrix4::identity()
@@ -63,11 +46,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     left.get_material().set_diffuse(0.7);
     left.get_material().set_specular(0.3);
 
-    let objects = vec![floor, left_wall, right_wall, middle, right, left];
+    let objects = vec![floor, middle, right, left];
 
     let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
 
-    let mut camera = Camera::new(1920, 1080, PI/3.0);
+    let mut camera = Camera::new(1024, 768, PI/3.0);
     camera.set_transform(view_transform(
         point(0.0, 1.5, -5.0),
         point(0.0, 1.0, 0.0),

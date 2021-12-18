@@ -45,9 +45,8 @@ impl World {
     fn intersect_world(&self, ray: Ray) -> Vec<Intersection> {
         let mut intersections: Vec<Intersection> = vec![];
         for object in &self.objects {
-            if let Some(intersection_arr) = object.intersect(ray) {
-                intersections.extend(intersection_arr.iter());
-            }
+            let object_intersections = object.intersect(ray);
+            intersections.extend(object_intersections.iter());
         }
         intersections.sort_by(|a, b| a.partial_cmp(b).unwrap());
         intersections
@@ -139,7 +138,6 @@ fn prepare_computations (intersection: Intersection, ray: Ray) -> Computations {
 mod tests {
     use crate::{Intersection, Light, Matrix4, Ray, spheres};
     use crate::matrices::tuples::*;
-    use crate::objects::Shape::Sphere;
     use crate::surfaces::colors::*;
     use crate::transformations::translation;
     use super::*;
