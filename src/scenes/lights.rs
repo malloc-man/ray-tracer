@@ -1,7 +1,7 @@
 use crate::Tuple;
 use crate::surfaces::colors::*;
 use crate::LightType::PointLight;
-use crate::surfaces::materials::*;
+use crate::surfaces::{materials::*, patterns::*};
 use crate::objects::*;
 
 #[derive(Copy, Clone, Debug)]
@@ -45,13 +45,8 @@ impl Light {
 }
 
 pub fn lighting(material: Material, object: Object, light: Light, point: Tuple, eyev: Tuple, normalv: Tuple, in_shadow: bool) -> Color {
-    let mut clr = black();
 
-    if let Some(pattern) = material.get_pattern() {
-        clr = object.stripe_at_object(point);
-    } else {
-        clr = material.get_color();
-    }
+    let clr = object.pattern_at_object(point);
 
     let effective_color = clr * light.get_intensity();
 
@@ -146,7 +141,7 @@ mod tests {
         m.set_specular(0.0);
         m.set_diffuse(0.0);
         m.set_ambient(1.0);
-        m.set_pattern(Pattern::stripe_pattern(white(), black()));
+        m.set_pattern(stripe(white(), black()));
         let mut s = spheres::new();
         s.set_material(m);
         let eyev = vector(0.0, 0.0, -1.0);

@@ -4,6 +4,7 @@ use crate::objects::Object;
 use crate::rays::*;
 use crate::scenes::lights::*;
 use crate::surfaces::colors::*;
+use crate::surfaces::patterns::*;
 
 pub struct World {
     objects: Vec<Object>,
@@ -21,7 +22,7 @@ impl World {
     pub fn new_default() -> Self {
         let mut sphere1 = spheres::new();
         let mut material = Material::new();
-        material.set_color(color(0.8, 1.0, 0.6))
+        material.set_pattern(solid(color(0.8, 1.0, 0.6)))
             .set_ambient(0.1)
             .set_diffuse(0.7)
             .set_specular(0.2)
@@ -68,7 +69,7 @@ impl World {
         let mut color = black();
         for light in &self.lights {
             let shadowed = self.is_shadowed(comps.over_point);
-            color += lighting(comps.object.get_material(), comps.object, *light, comps.point, comps.eyev, comps.normalv, shadowed);
+            color += lighting(comps.object.get_material(), comps.object, *light, comps.over_point, comps.eyev, comps.normalv, shadowed);
         }
         color
     }

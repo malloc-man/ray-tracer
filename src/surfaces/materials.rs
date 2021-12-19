@@ -1,4 +1,4 @@
-use crate::Matrix4;
+use crate::{Matrix4, solid};
 use crate::surfaces::colors::*;
 use crate::surfaces::patterns::Pattern;
 
@@ -9,18 +9,18 @@ pub struct Material {
     diffuse: f64,
     specular: f64,
     shininess: f64,
-    pattern: Option<Pattern>,
+    pattern: Pattern,
 }
 
 impl Material {
     pub fn new() -> Self {
         Self {
-            color: color(1.0, 1.0, 1.0),
+            color: white(),
             ambient: 0.1,
             diffuse: 0.9,
             specular: 0.9,
             shininess: 200.0,
-            pattern: None,
+            pattern: solid(white()),
         }
     }
 
@@ -69,30 +69,25 @@ impl Material {
         self
     }
 
-    pub fn get_pattern(&self) -> Option<Pattern> {
+    pub fn get_pattern(&self) -> Pattern {
         self.pattern
     }
 
     pub fn set_pattern(&mut self, pattern: Pattern) -> &mut Self {
-        self.pattern = Some(pattern);
+        self.pattern = pattern;
         self
     }
 
-    pub fn get_pattern_transform(&self) -> Option<Matrix4> {
-        if let Some(pattern) = self.get_pattern() {
-            Some(pattern.get_transform())
-        } else {
-            None
-        }
+    pub fn get_pattern_transform(&self) -> Matrix4 {
+        self.pattern.get_transform()
     }
 
     pub fn set_pattern_transform(&mut self, transform: Matrix4) -> &mut Self {
-        if let Some(mut pattern) = self.get_pattern() {
-            pattern.set_transform(transform);
-            self.set_pattern(pattern);
-        }
+        self.pattern.set_transform(transform);
         self
     }
 
-
+    pub fn get_pattern_inverse_transform(&self) -> Matrix4 {
+        self.pattern.get_inverse_transform()
+    }
 }

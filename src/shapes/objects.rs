@@ -101,7 +101,7 @@ impl Object {
         self
     }
 
-    pub fn get_pattern(&self) -> Option<Pattern> {
+    pub fn get_pattern(&self) -> Pattern {
         self.material.get_pattern()
     }
 
@@ -110,12 +110,8 @@ impl Object {
         self
     }
 
-    pub fn get_pattern_transform(&self) -> Option<Matrix4> {
-        if let Some(pattern) = self.material.get_pattern() {
-            Some(pattern.get_transform())
-        } else {
-            None
-        }
+    pub fn get_pattern_transform(&self) -> Matrix4 {
+        self.material.get_pattern_transform()
     }
 
     pub fn set_pattern_transform(&mut self, transform: Matrix4) -> &mut Self {
@@ -123,12 +119,8 @@ impl Object {
         self
     }
 
-    pub fn get_pattern_inverse_transform(&self) -> Option<Matrix4> {
-        if let Some(pattern) = self.material.get_pattern() {
-            Some(pattern.get_inverse_transform())
-        } else {
-            None
-        }
+    pub fn get_pattern_inverse_transform(&self) -> Matrix4 {
+        self.material.get_pattern_inverse_transform()
     }
 
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
@@ -149,17 +141,17 @@ impl Object {
         }
     }
 
-    pub fn stripe_at_object(&self, point: Tuple) -> Color {
+    pub fn pattern_at_object(&self, point: Tuple) -> Color {
         let local_point = self.inverse_transform * point;
-        let pattern_space_point = self.get_pattern_inverse_transform().unwrap() * local_point;
-        self.get_pattern().unwrap().stripe_at(pattern_space_point)
+        let pattern_space_point = self.get_pattern_inverse_transform() * local_point;
+        self.get_pattern().pattern_at(pattern_space_point)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::f64::consts::PI;
-    use crate::{Pattern, spheres, transformations, surfaces::colors::*};
+    use crate::{Pattern, spheres, transformations, surfaces::colors::*, surfaces::patterns::*};
     use crate::shapes::objects::Object;
     use crate::shapes::objects::Shape::Sphere;
     use crate::matrices::tuples::*;
@@ -198,18 +190,18 @@ mod tests {
     fn test_stripe_at_object_with_obj_transformation() {
         let mut object = spheres::new();
         object.set_transform(transformations::scaling(2.0, 2.0, 2.0));
-        object.set_pattern(Pattern::stripe_pattern(white(), black()));
+        object.set_pattern(stripe(white(), black()));
 
-        let c = object.stripe_at_object(point(1.5, 0.0, 0.0));
+        let c = object.pattern_at_object(point(1.5, 0.0, 0.0));
         assert_eq!(c, white());
     }
 
     #[test]
     fn test_stripe_at_object_with_pattern_transformation() {
         let mut object = spheres::new();
-        object.set_pattern(Pattern::stripe_pattern(white(), black()));
+        object.set_pattern(stripe(white(), black()));
         object.set_pattern_transform(scaling(2.0, 2.0, 2.0));
-        let c = object.stripe_at_object(point(1.5, 0.0, 0.0));
+        let c = object.pattern_at_object(point(1.5, 0.0, 0.0));
         assert_eq!(c, white());
     }
 
@@ -217,9 +209,9 @@ mod tests {
     fn test_stripe_at_object_with_pattern_and_obj_transformations() {
         let mut object = spheres::new();
         object.set_transform(scaling(2.0, 2.0, 2.0));
-        object.set_pattern(Pattern::stripe_pattern(white(), black()));
+        object.set_pattern(stripe(white(), black()));
         object.set_pattern_transform(translation(0.5, 0.0, 0.0));
-        let c = object.stripe_at_object(point(2.5, 0.0, 0.0));
+        let c = object.pattern_at_object(point(2.5, 0.0, 0.0));
         assert_eq!(c, white());
     }
 }
