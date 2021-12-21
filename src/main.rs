@@ -18,6 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut floor = planes::new();
     floor.set_pattern(checker_3d(color(0.8, 0.1, 0.1), color(0.8, 0.6, 0.6)));
     floor.set_pattern_transform(rotation_y(0.4));
+    floor.set_reflective(0.3);
 
     let mut middle = spheres::new();
     middle.set_transform(Matrix4::identity()
@@ -31,6 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .rotate_y(0.5)
         .rotate_z(0.37)
     );
+    middle.set_reflective(0.2);
 
     let mut right = spheres::new();
     right.set_transform(Matrix4::identity()
@@ -39,6 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     right.set_pattern(solid(color(0.5, 1.0, 1.0)));
     right.set_diffuse(0.7);
     right.set_specular(0.3);
+    right.set_reflective(0.2);
 
     let mut left = spheres::new();
     left.set_transform(Matrix4::identity()
@@ -47,6 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     left.set_pattern(solid(color(1.0, 0.8, 0.1)));
     left.set_diffuse(0.7);
     left.set_specular(0.3);
+    left.set_reflective(0.2);
 
     let objects = vec![floor, middle, right, left];
 

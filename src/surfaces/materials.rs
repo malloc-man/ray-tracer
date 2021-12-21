@@ -10,6 +10,7 @@ pub struct Material {
     specular: f64,
     shininess: f64,
     pattern: Pattern,
+    reflective: f64,
 }
 
 impl Material {
@@ -21,6 +22,7 @@ impl Material {
             specular: 0.9,
             shininess: 200.0,
             pattern: solid(white()),
+            reflective: 0.0,
         }
     }
 
@@ -89,5 +91,14 @@ impl Material {
 
     pub fn get_pattern_inverse_transform(&self) -> Matrix4 {
         self.pattern.get_inverse_transform()
+    }
+
+    pub fn get_reflective(&self) -> f64 {
+        self.reflective
+    }
+
+    pub fn set_reflective(&mut self, reflective: f64) -> &mut Self {
+        self.reflective = reflective;
+        self
     }
 }

@@ -123,6 +123,15 @@ impl Object {
         self.material.get_pattern_inverse_transform()
     }
 
+    pub fn get_reflective(&self) -> f64 {
+        self.material.get_reflective()
+    }
+
+    pub fn set_reflective(&mut self, reflective: f64) -> &mut Self {
+        self.material.set_reflective(reflective);
+        self
+    }
+
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
         let local_point = self.inverse_transform * pt;
         let local_normal = match self.shape {
