@@ -1,4 +1,4 @@
-use crate::{Intersection, Ray};
+use crate::{black, Intersection, Ray, solid};
 use crate::shapes::objects::{Object, Shape};
 use crate::matrices::tuples::*;
 
@@ -6,6 +6,13 @@ pub fn new() -> Object {
     Object::new(Shape::Sphere)
 }
 
+pub fn glass_sphere() -> Object {
+    let mut sphere = Object::new(Shape::Sphere);
+    sphere.set_transparency(1.0);
+    sphere.set_refractive_index(1.5);
+    sphere.set_pattern(solid(black()));
+    sphere
+}
 pub fn normal_at(pt: Tuple) -> Tuple {
     pt - point(0.0, 0.0, 0.0)
 }

@@ -11,6 +11,8 @@ pub struct Material {
     shininess: f64,
     pattern: Pattern,
     reflective: f64,
+    transparency: f64,
+    refractive_index: f64,
 }
 
 impl Material {
@@ -23,6 +25,8 @@ impl Material {
             shininess: 200.0,
             pattern: solid(white()),
             reflective: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0,
         }
     }
 
@@ -99,6 +103,24 @@ impl Material {
 
     pub fn set_reflective(&mut self, reflective: f64) -> &mut Self {
         self.reflective = reflective;
+        self
+    }
+
+    pub fn get_transparency(&self) -> f64 {
+        self.transparency
+    }
+
+    pub fn set_transparency(&mut self, transparency: f64) -> &mut Self {
+        self.transparency = transparency;
+        self
+    }
+
+    pub fn get_refractive_index(&self) -> f64 {
+        self.refractive_index
+    }
+
+    pub fn set_refractive_index(&mut self, index: f64) -> &mut Self {
+        self.refractive_index = index;
         self
     }
 }

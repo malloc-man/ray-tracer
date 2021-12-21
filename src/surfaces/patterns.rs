@@ -16,6 +16,7 @@ pub enum PatternType {
     Gradient {a: Color, b: Color},
     Ring {a: Color, b: Color},
     Checker3d {a: Color, b: Color},
+    Test,
 }
 
 impl Pattern {
@@ -52,6 +53,7 @@ impl Pattern {
             PatternType::Ring {a, b} => ring_at(a, b, point),
             PatternType::Checker3d {a, b} => checker_3d_at(a, b, point),
             PatternType::Solid{a} => a,
+            PatternType::Test => color(point.x, point.y, point.z),
         }
     }
 }
@@ -74,6 +76,10 @@ pub fn ring(a: Color, b: Color) -> Pattern {
 
 pub fn checker_3d(a: Color, b: Color) -> Pattern {
     Pattern::new(PatternType::Checker3d {a, b}, Matrix4::identity())
+}
+
+pub fn test_pattern() -> Pattern {
+    Pattern::new(PatternType::Test, Matrix4::identity())
 }
 
 fn stripe_at(a: Color, b: Color, point: Tuple) -> Color {

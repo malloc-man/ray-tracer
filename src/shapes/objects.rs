@@ -132,6 +132,24 @@ impl Object {
         self
     }
 
+    pub fn get_transparency(&self) -> f64 {
+        self.material.get_transparency()
+    }
+
+    pub fn set_transparency(&mut self, transparency: f64) -> &mut Self {
+        self.material.set_transparency(transparency);
+        self
+    }
+
+    pub fn get_refractive_index(&self) -> f64 {
+        self.material.get_refractive_index()
+    }
+
+    pub fn set_refractive_index(&mut self, index: f64) -> &mut Self {
+        self.material.set_refractive_index(index);
+        self
+    }
+
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
         let local_point = self.inverse_transform * pt;
         let local_normal = match self.shape {
@@ -160,7 +178,7 @@ impl Object {
 #[cfg(test)]
 mod tests {
     use std::f64::consts::PI;
-    use crate::{Pattern, spheres, transformations, surfaces::colors::*, surfaces::patterns::*};
+    use crate::{spheres, transformations, surfaces::colors::*, surfaces::patterns::*};
     use crate::shapes::objects::Object;
     use crate::shapes::objects::Shape::Sphere;
     use crate::matrices::tuples::*;

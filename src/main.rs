@@ -4,8 +4,8 @@ use matrices::tuples::*;
 use scenes::{camera::*, lights::*, world::*};
 use surfaces::{materials::*, colors::*, patterns::*};
 use crate::{matrix4::*, rays::*};
-use surfaces::patterns::{gradient, checker_3d};
-use crate::transformations::{rotation_y, view_transform};
+use surfaces::patterns::checker_3d;
+use crate::transformations::*;
 
 mod matrices;
 mod shapes;
@@ -16,23 +16,31 @@ mod surfaces;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut floor = planes::new();
-    floor.set_pattern(checker_3d(color(0.8, 0.1, 0.1), color(0.8, 0.6, 0.6)));
-    floor.set_pattern_transform(rotation_y(0.4));
-    floor.set_reflective(0.3);
+    floor.set_pattern(checker_3d(white(), black()));
+    floor.set_reflective(0.15);
 
-    let mut middle = spheres::new();
-    middle.set_transform(Matrix4::identity()
-        .translate(-0.5, 1.0, 0.5));
-    middle.set_diffuse(0.7);
-    middle.set_specular(0.3);
-    middle.set_pattern(ring(white(), black()));
-    middle.set_pattern_transform(Matrix4::identity()
-        .scale(2.0, 2.0, 2.0)
-        .translate(-1.0, 0.0, 0.0)
-        .rotate_y(0.5)
-        .rotate_z(0.37)
-    );
-    middle.set_reflective(0.2);
+    let mut right_wall = planes::new();
+    right_wall.set_pattern(checker_3d(white(), black()));
+    right_wall.set_reflective(0.15);
+    right_wall.set_transform(Matrix4::identity()
+        .rotate_x(PI/2.0)
+        .rotate_y(PI/4.0)
+        .translate(0.0, 0.0, 5.0));
+
+    let mut left_wall = planes::new();
+    left_wall.set_pattern(checker_3d(white(), black()));
+    left_wall.set_reflective(0.15);
+    left_wall.set_transform(Matrix4::identity()
+        .rotate_x(-PI/2.0)
+        .rotate_y(-PI/4.0)
+        .translate(0.0, 0.0, 5.0));
+
+    let mut ceiling = planes::new();
+    ceiling.set_pattern(checker_3d(white(), black()));
+    ceiling.set_reflective(0.3);
+    ceiling.set_transform(translation(0.0, 13.0, 0.0));
+
+    let mut middle = spheres::glass_sphere();
 
     let mut right = spheres::new();
     right.set_transform(Matrix4::identity()
@@ -41,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     right.set_pattern(solid(color(0.5, 1.0, 1.0)));
     right.set_diffuse(0.7);
     right.set_specular(0.3);
-    right.set_reflective(0.2);
+    right.set_reflective(0.04);
 
     let mut left = spheres::new();
     left.set_transform(Matrix4::identity()
@@ -50,9 +58,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     left.set_pattern(solid(color(1.0, 0.8, 0.1)));
     left.set_diffuse(0.7);
     left.set_specular(0.3);
-    left.set_reflective(0.2);
+    left.set_reflective(0.04);
 
-    let objects = vec![floor, middle, right, left];
+    let objects = vec![floor, right_wall, left_wall, ceiling, middle, right, left];
 
     let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
 
