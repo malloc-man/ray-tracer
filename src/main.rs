@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     floor.set_reflective(0.15);
 
     let mut right_wall = planes::new();
-    right_wall.set_pattern(checker_3d(white(), black()));
+    right_wall.set_pattern(checker_3d(color(0.0, 0.0, 0.8), black()));
     right_wall.set_reflective(0.15);
     right_wall.set_transform(Matrix4::identity()
         .rotate_x(PI/2.0)
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .translate(0.0, 0.0, 5.0));
 
     let mut left_wall = planes::new();
-    left_wall.set_pattern(checker_3d(white(), black()));
+    left_wall.set_pattern(checker_3d(color(0.8, 0.0, 0.0), black()));
     left_wall.set_reflective(0.15);
     left_wall.set_transform(Matrix4::identity()
         .rotate_x(-PI/2.0)
@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ceiling.set_transform(translation(0.0, 13.0, 0.0));
 
     let mut middle = spheres::glass_sphere();
+    middle.set_transform(translation(0.0, 1.5, 0.5));
 
     let mut right = spheres::new();
     right.set_transform(Matrix4::identity()
