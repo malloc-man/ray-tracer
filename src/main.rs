@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
 
-    let mut camera = Camera::new(1024, 768, PI/3.0);
+    let mut camera = Camera::new(1000, 1000, PI/3.0);
     camera.set_transform(view_transform(
         point(0.0, 1.5, -5.0),
         point(0.0, 1.0, 0.0),
@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let world = World::new(objects, lights);
 
-    let image = camera.render(&world);
+    let image = camera.parallel_render(&world);
 
     image.canvas_to_ppm("./image.ppm")?;
 

@@ -18,6 +18,10 @@ impl Canvas {
         }
     }
 
+    pub fn pixels(&mut self) -> &mut Vec<Color> {
+        &mut self.pixels
+    }
+
     pub fn get_height(&self) -> usize {
         self.height
     }

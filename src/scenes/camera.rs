@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use crate::{matrix4::*, Ray};
 use crate::matrices::tuples::*;
 use crate::scenes::canvas::*;
@@ -71,6 +72,27 @@ impl Camera {
         }
         image
     }
+
+    // Parallel rendering requires hsize and vsize to be divisible by 10.
+    pub fn parallel_render(&self, world: &World) -> Canvas {
+        const BAND_SIZE: usize = 10;
+        let mut image = Canvas::new(self.hsize, self.vsize);
+
+        image
+            .pixels()
+            .par_chunks_mut(self.hsize * BAND_SIZE)
+            .enumerate()
+            .for_each(|(i, band)| {
+                for row in 0..BAND_SIZE {
+                    for col in 0..self.hsize {
+                        let ray = self.ray_for_pixel(col, row + i * BAND_SIZE);
+                        band[(row * self.hsize) + col] =
+                            world.color_at(ray, DEFAULT_REFLECTION_DEPTH);
+                    }
+                }
+            });
+        image
+    }
 }
 
 #[cfg(test)]
@@ -128,7 +150,7 @@ mod tests {
     #[test]
     fn test_render_world() {
         let w = World::new_default();
-        let mut c = Camera::new(11, 11, PI/2.0);
+        let mut c = Camera::new(20, 20, PI/2.0);
 
         let from = point(0.0, 0.0, -5.0);
         let to = point(0.0, 0.0, 0.0);
