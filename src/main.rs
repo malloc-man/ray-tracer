@@ -16,15 +16,8 @@ mod surfaces;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut floor = planes::new();
-//    floor.set_pattern(checker_3d(white(), black()));
-    floor.set_color(white());
+    floor.set_pattern(checker_3d(white(), black()));
     floor.set_reflective(0.15);
-
-    let mut back_wall = planes::new();
-    back_wall.set_color(white());
-    back_wall.set_transform(Matrix4::identity()
-        .rotate_x(PI/2.0)
-        .translate(0.0, 0.0, 5.0));
 
     let mut right_wall = planes::new();
     right_wall.set_pattern(checker_3d(color(0.0, 0.0, 0.8), black()));
@@ -42,9 +35,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         .rotate_y(-PI/4.0)
         .translate(0.0, 0.0, 5.0));
 
+    let mut back_wall = planes::new();
+    back_wall.set_pattern(checker_3d(white(), black()));
+    back_wall.set_transform(Matrix4::identity()
+        .rotate_x(PI/2.0)
+        .translate(0.0, 0.0, 5.0));
+
     let mut ceiling = planes::new();
-    //ceiling.set_pattern(checker_3d(white(), black()));
-    ceiling.set_color(white());
+    ceiling.set_pattern(checker_3d(white(), black()));
     ceiling.set_reflective(0.3);
     ceiling.set_transform(translation(0.0, 13.0, 0.0));
 
@@ -59,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     bubble.set_transparency(1.0);
     bubble.set_color(white());
     bubble.set_refractive_index(1.0);
-    bubble.set_reflective(0.1);
+    bubble.set_reflective(1.0);
     bubble.set_ambient(0.0);
     bubble.set_diffuse(0.0);
     bubble.set_specular(0.9);
@@ -82,15 +80,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     left.set_specular(0.3);
     left.set_reflective(0.04);
 
-    //let objects = vec![floor, right_wall, left_wall, ceiling, middle, bubble, right, left];
-    let objects = vec![floor, middle, bubble, back_wall, ceiling];
+    let objects = vec![floor, right_wall, left_wall, ceiling, middle, bubble, right, left];
 
     let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
 
     let mut camera = Camera::new(1200, 800, PI/3.0);
     camera.set_transform(view_transform(
         point(0.0, 1.5, -5.0),
-        point(0.0, 1.0, 0.0),
+        point(0.0, 0.0, 0.0),
         vector(0.0, 1.0, 0.0)));
 
     let world = World::new(objects, lights);

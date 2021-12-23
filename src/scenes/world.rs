@@ -59,13 +59,13 @@ impl World {
         intersections
     }
 
-    fn hit_world(&self, intersections: Vec<Intersection>) -> Option<Intersection> {
+    fn hit_world(&self, intersections: &Vec<Intersection>) -> Option<Intersection> {
         if intersections.is_empty() {
             return None;
         }
         for intersection in intersections {
             if intersection.get_t() >= 0.0 {
-                return Some(intersection);
+                return Some(*intersection);
             }
         }
         None
@@ -89,7 +89,7 @@ impl World {
 
     pub fn color_at(&self, ray: Ray, remaining: usize) -> Color {
         let intersections = self.intersect_world(ray);
-        if let Some(intersection) = self.hit_world(intersections.clone()) {
+        if let Some(intersection) = self.hit_world(&intersections) {
             let comps = prepare_computations(intersection, ray, &intersections);
             self.shade_hit(comps, remaining)
         } else {
@@ -102,7 +102,7 @@ impl World {
         let distance = vector.magnitude();
         let ray = Ray::new(point, vector.normalize());
         let intersections = self.intersect_world(ray);
-        if let Some(hit) = self.hit_world(intersections) {
+        if let Some(hit) = self.hit_world(&intersections) {
             if hit.get_t() < distance && hit.get_object().casts_shadow() {
                 return true;
             }
@@ -209,22 +209,28 @@ fn prepare_computations (intersection: Intersection, ray: Ray, intersection_list
     let mut containers: Vec<Object> = vec![];
     for i in intersection_list {
         if i == &intersection {
-            if !containers.is_empty() {
+            if containers.is_empty() {
+                n1 = 1.0;
+            } else {
                 n1 = containers[containers.len()-1].get_refractive_index();
             }
         }
+
         let obj = &i.get_object();
         if containers.contains(obj) {
             for x in 0..containers.len() {
                 if containers[x] == *obj {
                     containers.remove(x);
+                    break;
                 }
             }
         } else {
             containers.push(*obj);
         }
         if i == &intersection {
-            if !containers.is_empty() {
+            if containers.is_empty() {
+                n2 = 1.0;
+            } else {
                 n2 = containers[containers.len()-1].get_refractive_index();
             }
             break;
