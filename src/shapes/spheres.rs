@@ -8,9 +8,15 @@ pub fn new() -> Object {
 
 pub fn glass_sphere() -> Object {
     let mut sphere = Object::new(Shape::Sphere);
-    sphere.set_transparency(1.0);
+    sphere.set_transparency(0.9);
+    sphere.set_reflective(0.9);
     sphere.set_refractive_index(1.5);
     sphere.set_pattern(solid(black()));
+    sphere.set_casts_shadow(false);
+    sphere.set_ambient(0.0);
+    sphere.set_diffuse(0.0);
+    sphere.set_shininess(300.0);
+    sphere.set_specular(0.9);
     sphere
 }
 pub fn normal_at(pt: Tuple) -> Tuple {

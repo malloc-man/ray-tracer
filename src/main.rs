@@ -16,8 +16,15 @@ mod surfaces;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut floor = planes::new();
-    floor.set_pattern(checker_3d(white(), black()));
+//    floor.set_pattern(checker_3d(white(), black()));
+    floor.set_color(white());
     floor.set_reflective(0.15);
+
+    let mut back_wall = planes::new();
+    back_wall.set_color(white());
+    back_wall.set_transform(Matrix4::identity()
+        .rotate_x(PI/2.0)
+        .translate(0.0, 0.0, 5.0));
 
     let mut right_wall = planes::new();
     right_wall.set_pattern(checker_3d(color(0.0, 0.0, 0.8), black()));
@@ -36,12 +43,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         .translate(0.0, 0.0, 5.0));
 
     let mut ceiling = planes::new();
-    ceiling.set_pattern(checker_3d(white(), black()));
+    //ceiling.set_pattern(checker_3d(white(), black()));
+    ceiling.set_color(white());
     ceiling.set_reflective(0.3);
     ceiling.set_transform(translation(0.0, 13.0, 0.0));
 
     let mut middle = spheres::glass_sphere();
     middle.set_transform(translation(0.0, 1.5, 0.5));
+
+    let mut bubble = spheres::new();
+    bubble.set_transform(Matrix4::identity()
+        .scale(0.5, 0.5, 0.5)
+        .translate(0.0, 1.5, 0.5));
+    bubble.set_casts_shadow(false);
+    bubble.set_transparency(1.0);
+    bubble.set_color(white());
+    bubble.set_refractive_index(1.0);
+    bubble.set_reflective(0.1);
+    bubble.set_ambient(0.0);
+    bubble.set_diffuse(0.0);
+    bubble.set_specular(0.9);
 
     let mut right = spheres::new();
     right.set_transform(Matrix4::identity()
@@ -61,11 +82,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     left.set_specular(0.3);
     left.set_reflective(0.04);
 
-    let objects = vec![floor, right_wall, left_wall, ceiling, middle, right, left];
+    //let objects = vec![floor, right_wall, left_wall, ceiling, middle, bubble, right, left];
+    let objects = vec![floor, middle, bubble, back_wall, ceiling];
 
     let lights = vec![Light::new(point(-10.0, 10.0, -10.0), white())];
 
-    let mut camera = Camera::new(1000, 1000, PI/3.0);
+    let mut camera = Camera::new(1200, 800, PI/3.0);
     camera.set_transform(view_transform(
         point(0.0, 1.5, -5.0),
         point(0.0, 1.0, 0.0),

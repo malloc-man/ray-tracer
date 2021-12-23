@@ -72,16 +72,19 @@ impl World {
     }
 
     fn shade_hit(&self, comps: Computations, remaining: usize) -> Color {
-        let mut color = black();
-        let mut reflections = black();
-        let mut refractions = black();
-        for light in &self.lights {
-            let shadowed = self.is_shadowed(comps.over_point);
-            color += lighting(comps.object.get_material(), comps.object, *light, comps.over_point, comps.eyev, comps.normalv, shadowed);
-            reflections += self.reflected_color(comps, remaining);
-            refractions += self.refracted_color(comps, remaining);
+
+        let shadowed = self.is_shadowed(comps.over_point);
+        let clr = lighting(comps.object.get_material(), comps.object, self.lights[0], comps.over_point, comps.eyev, comps.normalv, shadowed);
+        let reflections = self.reflected_color(comps, remaining);
+        let refractions = self.refracted_color(comps, remaining);
+
+        let object = comps.object;
+        if object.get_reflective() > 0.0 && object.get_transparency() > 0.0 {
+            let reflectance = comps.schlick();
+            clr + (reflections * reflectance) + (refractions * (1.0 - reflectance))
+        } else {
+            clr + reflections + refractions
         }
-        color + reflections + refractions
     }
 
     pub fn color_at(&self, ray: Ray, remaining: usize) -> Color {
@@ -100,7 +103,7 @@ impl World {
         let ray = Ray::new(point, vector.normalize());
         let intersections = self.intersect_world(ray);
         if let Some(hit) = self.hit_world(intersections) {
-            if hit.get_t() < distance {
+            if hit.get_t() < distance && hit.get_object().casts_shadow() {
                 return true;
             }
         }
@@ -173,6 +176,20 @@ impl Computations {
             n2,
         }
     }
+
+    fn schlick(&self) -> f64 {
+        let mut cos = self.eyev * self.normalv;
+        if self.n1 > self.n2 {
+            let n = self.n1 / self.n2;
+            let sin2_t = n.powi(2) * (1.0 - cos.powi(2));
+            if sin2_t > 1.0 {
+                return 1.0;
+            }
+            cos = (1.0 - sin2_t).sqrt();
+        }
+        let r0 = ((self.n1 - self.n2) / (self.n1 + self.n2)).powi(2);
+        r0 + (1.0 - r0) * (1.0 - cos).powi(5)
+    }
 }
 
 fn prepare_computations (intersection: Intersection, ray: Ray, intersection_list: &Vec<Intersection>) -> Computations {
@@ -196,11 +213,15 @@ fn prepare_computations (intersection: Intersection, ray: Ray, intersection_list
                 n1 = containers[containers.len()-1].get_refractive_index();
             }
         }
-        if containers.contains(&i.get_object()) {
-            let index = containers.iter().position(|x| x == &i.get_object()).unwrap();
-            containers.remove(index);
+        let obj = &i.get_object();
+        if containers.contains(obj) {
+            for x in 0..containers.len() {
+                if containers[x] == *obj {
+                    containers.remove(x);
+                }
+            }
         } else {
-            containers.push(i.get_object());
+            containers.push(*obj);
         }
         if i == &intersection {
             if !containers.is_empty() {
@@ -500,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    fn test_total_internal_refraction() {
+    fn test_total_internal_reflection() {
         let w = World::new_default();
         let mut shape = w.objects[0];
         let r = Ray::new(point(0.0, 0.0, f64::sqrt(2.0)/2.0), vector(0.0, 1.0, 0.0));
@@ -555,5 +576,68 @@ mod tests {
         let clr = w.shade_hit(comps, 5);
 
         assert_eq!(clr, color(0.93642, 0.68642, 0.68642));
+    }
+
+    #[test]
+    fn test_schlick_with_total_internal_reflection() {
+        let shape = spheres::glass_sphere();
+        let sqrt2 = f64::sqrt(2.0);
+        let r = Ray::new(point(0.0, 0.0, sqrt2/2.0),
+                         vector(0.0, 1.0, 0.0));
+        let xs = vec![
+            Intersection::new(-sqrt2/2.0, shape),
+            Intersection::new(sqrt2/2.0, shape)];
+        let comps = prepare_computations(xs[1], r, &xs);
+
+        assert_eq!(comps.schlick(), 1.0);
+    }
+
+    #[test]
+    fn test_schlick_with_perpendicular_ray() {
+        let shape = spheres::glass_sphere();
+        let r = Ray::new(origin(), vector(0.0, 1.0, 0.0));
+        let xs = vec![
+            Intersection::new(-1.0, shape),
+            Intersection::new(1.0, shape)];
+        let comps = prepare_computations(xs[1], r, &xs);
+        let reflectance = comps.schlick();
+        assert!(f64::abs(reflectance - 0.04) < 0.00001);
+    }
+
+    #[test]
+    fn test_shade_hit_with_schlick() {
+        let mut w = World::new_default();
+        let sqrt2 = f64::sqrt(2.0);
+        let r = Ray::new(point(0.0, 0.0, -3.0), vector(0.0, -sqrt2/2.0, sqrt2/2.0));
+
+        let mut floor = planes::new();
+        floor.set_transform(translation(0.0, -1.0, 0.0));
+        floor.set_reflective(0.5);
+        floor.set_transparency(0.5);
+        floor.set_refractive_index(1.5);
+        w.add_object(floor);
+
+        let mut ball = spheres::new();
+        ball.set_color(color(1.0, 0.0, 0.0));
+        ball.set_ambient(0.5);
+        ball.set_transform(translation(0.0, -3.5, -0.5));
+        w.add_object(ball);
+
+        let xs = vec![Intersection::new(f64::sqrt(2.0), floor)];
+
+        let comps = prepare_computations(xs[0], r, &xs);
+        let clr = w.shade_hit(comps, 5);
+
+        assert_eq!(clr, color(0.93391, 0.69643, 0.69243));
+    }
+
+    #[test]
+    fn test_schlick_n2_greater_than_n1() {
+        let shape = spheres::glass_sphere();
+        let r = Ray::new(point(0.0, 0.99, -2.0), vector(0.0, 0.0, 1.0));
+        let xs = vec![Intersection::new(1.8589, shape)];
+        let comps = prepare_computations(xs[0], r, &xs);
+        let reflectance = comps.schlick();
+        assert!(f64::abs(reflectance - 0.48873) < 0.00001);
     }
 }

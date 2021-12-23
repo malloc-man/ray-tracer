@@ -13,6 +13,7 @@ pub struct Material {
     reflective: f64,
     transparency: f64,
     refractive_index: f64,
+    casts_shadow: bool,
 }
 
 impl Material {
@@ -27,6 +28,7 @@ impl Material {
             reflective: 0.0,
             transparency: 0.0,
             refractive_index: 1.0,
+            casts_shadow: true,
         }
     }
 
@@ -36,6 +38,7 @@ impl Material {
 
     pub fn set_color(&mut self, color: Color) -> &mut Self {
         self.color = color;
+        self.pattern = solid(color);
         self
     }
 
@@ -121,6 +124,15 @@ impl Material {
 
     pub fn set_refractive_index(&mut self, index: f64) -> &mut Self {
         self.refractive_index = index;
+        self
+    }
+
+    pub fn casts_shadow(&self) -> bool {
+        self.casts_shadow
+    }
+
+    pub fn set_casts_shadow(&mut self, casts_shadow: bool) -> &mut Self {
+        self.casts_shadow = casts_shadow;
         self
     }
 }

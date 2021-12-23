@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test_render_world() {
         let w = World::new_default();
-        let mut c = Camera::new(20, 20, PI/2.0);
+        let mut c = Camera::new(11, 11, PI/2.0);
 
         let from = point(0.0, 0.0, -5.0);
         let to = point(0.0, 0.0, 0.0);

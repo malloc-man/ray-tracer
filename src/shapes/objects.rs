@@ -1,4 +1,4 @@
-use crate::{Color, Intersection, Material, Ray, spheres, planes, Pattern};
+use crate::{Color, Intersection, Material, Ray, spheres, planes, Pattern, solid};
 use crate::matrices::tuples::*;
 use crate::matrix4::Matrix4;
 
@@ -147,6 +147,15 @@ impl Object {
 
     pub fn set_refractive_index(&mut self, index: f64) -> &mut Self {
         self.material.set_refractive_index(index);
+        self
+    }
+
+    pub fn casts_shadow(&self) -> bool {
+        self.material.casts_shadow()
+    }
+
+    pub fn set_casts_shadow(&mut self, cs: bool) -> &mut Self {
+        self.material.set_casts_shadow(cs);
         self
     }
 
