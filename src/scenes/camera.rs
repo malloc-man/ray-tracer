@@ -86,8 +86,10 @@ impl Camera {
                 for row in 0..BAND_SIZE {
                     for col in 0..self.hsize {
                         let ray = self.ray_for_pixel(col, row + i * BAND_SIZE);
-                        band[(row * self.hsize) + col] =
-                            world.color_at(ray, DEFAULT_REFLECTION_DEPTH);
+                        if (row * self.hsize) + col < band.len() {
+                            band[(row * self.hsize) + col] =
+                                world.color_at(ray, DEFAULT_REFLECTION_DEPTH);
+                        }
                     }
                 }
             });
@@ -159,6 +161,21 @@ mod tests {
         c.set_transform(view_transform(from, to, up));
 
         let image = c.render(&w);
+        assert_eq!(image.pixel_at(5, 5), color(0.38066, 0.47583, 0.2855));
+    }
+
+    #[test]
+    fn test_parallel_render_world() {
+        let w = World::new_default();
+        let mut c = Camera::new(11, 11, PI/2.0);
+
+        let from = point(0.0, 0.0, -5.0);
+        let to = point(0.0, 0.0, 0.0);
+        let up = vector(0.0, 1.0, 0.0);
+
+        c.set_transform(view_transform(from, to, up));
+
+        let image = c.parallel_render(&w);
         assert_eq!(image.pixel_at(5, 5), color(0.38066, 0.47583, 0.2855));
     }
 }
