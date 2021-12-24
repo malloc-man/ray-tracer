@@ -10,7 +10,13 @@ pub fn new() -> Object {
 pub fn intersect(cube: Object, ray: Ray) -> Vec<Intersection> {
     let mut vec = vec![];
     let (xtmin, xtmax) = check_axis(ray.get_origin().x, ray.get_direction().x);
+
     let (ytmin, ytmax) = check_axis(ray.get_origin().y, ray.get_direction().y);
+
+    if ytmin > xtmax || xtmin > ytmax {
+        return vec;
+    }
+
     let (ztmin, ztmax) = check_axis(ray.get_origin().z, ray.get_direction().z);
 
     let tmin = f64::max(f64::max(xtmin, ytmin), ztmin);
