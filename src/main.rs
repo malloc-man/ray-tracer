@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     bubble.set_diffuse(0.0);
     bubble.set_specular(0.9);
 
-    let mut right = spheres::new();
+    let mut right = cubes::new();
     right.set_transform(Matrix4::identity()
         .scale(0.5, 0.5, 0.5)
         .translate(1.5, 0.5, -0.5));
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut camera = Camera::new(1200, 800, PI/3.0);
     camera.set_transform(view_transform(
         point(0.0, 1.5, -5.0),
-        point(0.0, 0.0, 0.0),
+        point(0.0, 1.5, 0.0),
         vector(0.0, 1.0, 0.0)));
 
     let world = World::new(objects, lights);

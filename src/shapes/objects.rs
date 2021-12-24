@@ -1,4 +1,4 @@
-use crate::{Color, Intersection, Material, Ray, spheres, planes, Pattern, solid};
+use crate::{Color, Intersection, Material, Ray, spheres, planes, Pattern, cubes};
 use crate::matrices::tuples::*;
 use crate::matrix4::Matrix4;
 
@@ -15,6 +15,7 @@ pub struct Object {
 pub enum Shape {
     Sphere,
     Plane,
+    Cube,
 }
 
 impl Object {
@@ -162,8 +163,9 @@ impl Object {
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
         let local_point = self.inverse_transform * pt;
         let local_normal = match self.shape {
-            Shape::Sphere =>  spheres::normal_at(local_point),
+            Shape::Sphere => spheres::normal_at(local_point),
             Shape::Plane => planes::normal_at(),
+            Shape::Cube => cubes::normal_at(local_point),
         };
         let world_normal = self.inverse_transform_transposed * local_normal;
         world_normal.vectorize().normalize()
@@ -174,6 +176,7 @@ impl Object {
         match self.shape {
             Shape::Sphere => spheres::intersect(self, local_ray),
             Shape::Plane => planes::intersect(self, local_ray),
+            Shape::Cube => cubes::intersect(self, local_ray),
         }
     }
 

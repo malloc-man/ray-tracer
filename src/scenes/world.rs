@@ -516,7 +516,7 @@ mod tests {
     #[test]
     fn test_refracted_color_max_recursive_depth() {
         let w = World::new_default();
-        let mut shape = w.objects[0];
+        let shape = w.objects[0];
         let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
         let xs = vec![
             Intersection::new(4.0, shape),
@@ -529,7 +529,7 @@ mod tests {
     #[test]
     fn test_total_internal_reflection() {
         let w = World::new_default();
-        let mut shape = w.objects[0];
+        let shape = w.objects[0];
         let r = Ray::new(point(0.0, 0.0, f64::sqrt(2.0)/2.0), vector(0.0, 1.0, 0.0));
         let xs = vec![
             Intersection::new(f64::sqrt(2.0)/-2.0, shape),
