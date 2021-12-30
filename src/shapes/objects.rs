@@ -8,7 +8,7 @@ pub struct Object {
     transform: Matrix4,
     inverse_transform: Matrix4,
     inverse_transform_transposed: Matrix4,
-    shape: Shape,
+    pub shape: Shape,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -16,7 +16,7 @@ pub enum Shape {
     Sphere,
     Plane,
     Cube,
-    Cylinder,
+    Cylinder {min: f64, max: f64, closed: bool},
 }
 
 impl Object {
@@ -167,7 +167,7 @@ impl Object {
             Shape::Sphere => spheres::normal_at(local_point),
             Shape::Plane => planes::normal_at(),
             Shape::Cube => cubes::normal_at(local_point),
-            Shape::Cylinder => cylinders::normal_at(local_point),
+            Shape::Cylinder {min: _, max: _, closed: _} => cylinders::normal_at(*self, local_point),
         };
         let world_normal = self.inverse_transform_transposed * local_normal;
         world_normal.vectorize().normalize()
@@ -179,7 +179,7 @@ impl Object {
             Shape::Sphere => spheres::intersect(self, local_ray),
             Shape::Plane => planes::intersect(self, local_ray),
             Shape::Cube => cubes::intersect(self, local_ray),
-            Shape::Cylinder => cylinders::intersect(self, local_ray),
+            Shape::Cylinder {min: _, max: _, closed: _} => cylinders::intersect(self, local_ray),
         }
     }
 
