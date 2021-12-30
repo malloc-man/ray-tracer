@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use rayon::prelude::*;
 use crate::{matrix4::*, Ray};
 use crate::matrices::tuples::*;
@@ -73,11 +74,15 @@ impl Camera {
         image
     }
 
-    // Parallel rendering requires hsize and vsize to be divisible by 10.
     pub fn parallel_render(&self, world: &World) -> Canvas {
+        let mut pixels_rendered = AtomicUsize::new(0);
+
+        println!("Beginning render...");
+
         const BAND_SIZE: usize = 10;
         let mut image = Canvas::new(self.hsize, self.vsize);
 
+        println!("Rendering image: {} x {}", self.hsize, self.vsize);
         image
             .pixels()
             .par_chunks_mut(self.hsize * BAND_SIZE)
@@ -89,10 +94,15 @@ impl Camera {
                         if (row * self.hsize) + col < band.len() {
                             band[(row * self.hsize) + col] =
                                 world.color_at(ray, DEFAULT_REFLECTION_DEPTH);
+                            pixels_rendered.fetch_add(1, Ordering::SeqCst);
                         }
                     }
+                    print!("\rRender progress: {:.1}%",
+                           pixels_rendered.load(Ordering::Relaxed) as f64 * 100.0 /
+                               ((self.hsize * self.vsize) as f64));
                 }
             });
+        println!("\nRender complete");
         image
     }
 }
