@@ -111,7 +111,7 @@ mod tests {
     use crate::transformations::view_transform;
     use crate::surfaces::colors::*;
     use super::*;
-    use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI};
+    use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4};
     use crate::utils::*;
 
     #[test]
