@@ -102,7 +102,6 @@ impl Camera {
                                ((self.hsize * self.vsize) as f64));
                 }
             });
-        println!("\nRender complete");
         image
     }
 }

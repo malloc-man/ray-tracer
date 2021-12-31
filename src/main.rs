@@ -14,7 +14,7 @@ pub mod rays;
 mod surfaces;
 
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let mut floor = planes::new();
     floor.set_pattern(checker_3d(white(), black()));
     floor.set_reflective(0.15);
@@ -82,7 +82,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let image = camera.parallel_render(&world);
 
-    image.canvas_to_ppm("./image.ppm")?;
-
-    Ok(())
+    image.canvas_to_png("image.png");
 }

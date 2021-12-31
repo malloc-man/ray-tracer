@@ -2,6 +2,7 @@ use std::fs;
 use std::error::Error;
 use std::io::Write;
 use crate::surfaces::colors::*;
+use image::*;
 
 pub struct Canvas {
     height: usize,
@@ -76,6 +77,20 @@ impl Canvas {
             f.write_all("\n".as_bytes())?;
         }
         Ok(true)
+    }
+
+    pub fn canvas_to_png(&self, path: &str) {
+        let mut buffer: RgbImage = ImageBuffer::new(self.width as u32, self.height as u32);
+        for (x, y, pixel) in buffer.enumerate_pixels_mut() {
+            let clr = self.pixel_at(x as usize, y as usize);
+            *pixel = Rgb([(clr.get_red() * 255.999) as u8,
+                (clr.get_green() * 255.999) as u8,
+                (clr.get_blue() * 255.999) as u8]);
+        }
+        match buffer.save(path) {
+            Err(e) => eprintln!("\nError: {}", e),
+            Ok(()) => println!("\nRender complete: image saved as {}", path),
+        };
     }
 }
 
