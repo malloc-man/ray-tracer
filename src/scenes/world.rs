@@ -5,8 +5,9 @@ use crate::rays::*;
 use crate::scenes::lights::*;
 use crate::surfaces::colors::*;
 use crate::surfaces::patterns::*;
+use crate::utils::EPSILON;
 
-pub const DEFAULT_REFLECTION_DEPTH: usize = 5;
+pub const DEFAULT_RECURSION_DEPTH: usize = 5;
 
 pub struct World {
     objects: Vec<Object>,
@@ -169,8 +170,8 @@ impl Computations {
             eyev,
             normalv,
             inside,
-            over_point: point + normalv * 0.00001,
-            under_point: point - normalv * 0.00001,
+            over_point: point + normalv * EPSILON,
+            under_point: point - normalv * EPSILON,
             reflectv,
             n1,
             n2,
@@ -247,6 +248,7 @@ mod tests {
     use crate::matrices::tuples::*;
     use crate::surfaces::colors::*;
     use crate::transformations::{scaling, translation};
+    use crate::utils::ApproxEq;
     use super::*;
 
     #[test]
@@ -286,7 +288,7 @@ mod tests {
 
         let comps = prepare_computations(i, ray, &vec![i]);
 
-        assert!(comps.over_point.z < -0.00001/2.0);
+        assert!(comps.over_point.z < -EPSILON/2.0);
         assert!(comps.point.z > comps.over_point.z);
     }
 
@@ -298,7 +300,7 @@ mod tests {
         let i = Intersection::new(4.0, shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
-        assert_eq!(w.shade_hit(comps, DEFAULT_REFLECTION_DEPTH), color(0.38066, 0.47583, 0.2855));
+        assert_eq!(w.shade_hit(comps, DEFAULT_RECURSION_DEPTH), color(0.38066, 0.47583, 0.2855));
     }
 
     #[test]
@@ -312,7 +314,7 @@ mod tests {
         let i = Intersection::new(0.5, shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
-        assert_eq!(w.shade_hit(comps, DEFAULT_REFLECTION_DEPTH), color(0.90498, 0.90498, 0.90498));
+        assert_eq!(w.shade_hit(comps, DEFAULT_RECURSION_DEPTH), color(0.90498, 0.90498, 0.90498));
     }
 
     #[test]
@@ -327,7 +329,7 @@ mod tests {
         let i = Intersection::new(4.0, w.objects[1]);
 
         let comps = prepare_computations(i, ray, &vec![i]);
-        let c = w.shade_hit(comps, DEFAULT_REFLECTION_DEPTH);
+        let c = w.shade_hit(comps, DEFAULT_RECURSION_DEPTH);
 
         assert_eq!(c, color(0.1, 0.1, 0.1));
     }
@@ -337,7 +339,7 @@ mod tests {
         let w = World::new_default();
         let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 1.0, 0.0));
 
-        assert_eq!(w.color_at(r, DEFAULT_REFLECTION_DEPTH), black());
+        assert_eq!(w.color_at(r, DEFAULT_RECURSION_DEPTH), black());
     }
 
     #[test]
@@ -345,7 +347,7 @@ mod tests {
         let w = World::new_default();
         let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
 
-        assert_eq!(w.color_at(r, DEFAULT_REFLECTION_DEPTH), color(0.38066, 0.47583, 0.2855));
+        assert_eq!(w.color_at(r, DEFAULT_RECURSION_DEPTH), color(0.38066, 0.47583, 0.2855));
     }
 
     #[test]
@@ -361,7 +363,7 @@ mod tests {
 
         let r = Ray::new(point(0.0, 0.0, 0.75), vector(0.0, 0.0, -1.0));
 
-        let c = w.color_at(r, DEFAULT_REFLECTION_DEPTH);
+        let c = w.color_at(r, DEFAULT_RECURSION_DEPTH);
         assert_eq!(c, w.objects[1].get_color());
     }
 
@@ -398,7 +400,7 @@ mod tests {
 
         let i = Intersection::new(1.0, *shape);
         let comps = prepare_computations(i, r, &vec![i]);
-        let color = w.reflected_color(comps, DEFAULT_REFLECTION_DEPTH);
+        let color = w.reflected_color(comps, DEFAULT_RECURSION_DEPTH);
 
         assert_eq!(color, black());
     }
@@ -416,7 +418,7 @@ mod tests {
         let i = Intersection::new(f64::sqrt(2.0), shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
-        let clr = w.reflected_color(comps, DEFAULT_REFLECTION_DEPTH);
+        let clr = w.reflected_color(comps, DEFAULT_RECURSION_DEPTH);
 
         assert_eq!(clr, color(0.19033, 0.23791, 0.14275));
     }
@@ -434,7 +436,7 @@ mod tests {
         let i = Intersection::new(f64::sqrt(2.0), shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
-        let clr = w.shade_hit(comps, DEFAULT_REFLECTION_DEPTH);
+        let clr = w.shade_hit(comps, DEFAULT_RECURSION_DEPTH);
 
         assert_eq!(clr, color(0.87676, 0.92434, 0.82918));
     }
@@ -607,7 +609,7 @@ mod tests {
             Intersection::new(1.0, shape)];
         let comps = prepare_computations(xs[1], r, &xs);
         let reflectance = comps.schlick();
-        assert!(f64::abs(reflectance - 0.04) < 0.00001);
+        assert!(reflectance.approx_eq(0.04));
     }
 
     #[test]
@@ -644,6 +646,6 @@ mod tests {
         let xs = vec![Intersection::new(1.8589, shape)];
         let comps = prepare_computations(xs[0], r, &xs);
         let reflectance = comps.schlick();
-        assert!(f64::abs(reflectance - 0.48873) < 0.00001);
+        assert!(reflectance.approx_eq(0.48873));
     }
 }

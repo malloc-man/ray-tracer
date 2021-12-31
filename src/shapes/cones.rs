@@ -1,4 +1,5 @@
 use crate::{Intersection, Ray, objects::*, tuples::*};
+use crate::utils::{ApproxEq, EPSILON};
 
 pub fn new(min: f64, max: f64, closed: bool) -> Object {
     Object::new(Shape::Cone {min, max, closed})
@@ -35,7 +36,7 @@ pub fn intersect(cone: Object, ray: Ray) -> Vec<Intersection> {
         2.0 * ray.get_origin().y * ray.get_direction().y +
         2.0 * ray.get_origin().z * ray.get_direction().z;
 
-    if a.abs() < 0.00001 && b.abs() < 0.00001 {
+    if a.approx_eq(0.0) && b.approx_eq(0.0) {
         intersect_caps(cone, ray, &mut vec);
         return vec;
     }
@@ -44,7 +45,7 @@ pub fn intersect(cone: Object, ray: Ray) -> Vec<Intersection> {
         ray.get_origin().y.powi(2) +
         ray.get_origin().z.powi(2);
 
-    if a.abs() < 0.00001 {
+    if a.approx_eq(0.0) {
         let t = -c / (2.0 * b);
         vec.push(Intersection::new(t, cone));
         intersect_caps(cone, ray, &mut vec);
@@ -82,7 +83,7 @@ pub fn intersect(cone: Object, ray: Ray) -> Vec<Intersection> {
 }
 
 fn intersect_caps(cone: Object, ray: Ray, intersections: &mut Vec<Intersection>) {
-    if !is_closed(cone) || ray.get_direction().y.abs() < 0.00001 {
+    if !is_closed(cone) || ray.get_direction().y.approx_eq(0.0) {
         return;
     }
 
@@ -113,9 +114,9 @@ fn is_closed(cone: Object) -> bool {
 
 pub fn normal_at(cone: Object, point: Tuple) -> Tuple {
     let dist_to_y_axis_sq = point.x.powi(2) + point.z.powi(2);
-    if dist_to_y_axis_sq < 1.0 && point.y >= max(cone) - 0.00001 {
+    if dist_to_y_axis_sq < 1.0 && point.y >= max(cone) - EPSILON {
         vector(0.0, 1.0, 0.0)
-    } else if dist_to_y_axis_sq < 1.0 && point.y <= min(cone) + 0.00001 {
+    } else if dist_to_y_axis_sq < 1.0 && point.y <= min(cone) + EPSILON {
         vector(0.0, -1.0, 0.0)
     } else {
         let mut y = (point.x.powi(2) + point.z.powi(2)).sqrt();
@@ -129,6 +130,7 @@ pub fn normal_at(cone: Object, point: Tuple) -> Tuple {
 #[cfg(test)]
 mod tests {
     use crate::cones;
+    use crate::utils::ApproxEq;
     use super::*;
 
     #[test]
@@ -142,13 +144,13 @@ mod tests {
 
         let r = Ray::new(point(0.0, 0.0, -5.0), vector(1.0, 1.0, 1.0).normalize());
         let xs = cone.intersect(r);
-        assert!((xs[0].get_t() - 8.66025).abs() < 0.00001);
-        assert!((xs[1].get_t() - 8.66025).abs() < 0.00001);
+        assert!((xs[0].get_t().approx_eq(8.66025)));
+        assert!((xs[1].get_t().approx_eq(8.66025)));
 
         let r = Ray::new(point(1.0, 1.0, -5.0), vector(-0.5, -1.0, 1.0).normalize());
         let xs = cone.intersect(r);
-        assert!((xs[0].get_t() - 4.55006).abs() < 0.00001);
-        assert!((xs[1].get_t() - 49.44994).abs() < 0.00001);
+        assert!((xs[0].get_t().approx_eq(4.55006)));
+        assert!((xs[1].get_t().approx_eq(49.44994)));
     }
 
     #[test]
@@ -158,7 +160,7 @@ mod tests {
         let r = Ray::new(point(0.0, 0.0, -1.0), direction);
         let xs = cone.intersect(r);
         assert_eq!(xs.len(), 1);
-        assert!((xs[0].get_t() - 0.35355).abs() < 0.00001);
+        assert!((xs[0].get_t().approx_eq(0.35355)));
     }
 
     #[test]

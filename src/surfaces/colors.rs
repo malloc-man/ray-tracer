@@ -1,4 +1,5 @@
 use std::ops;
+use crate::utils::ApproxEq;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
@@ -81,10 +82,9 @@ impl ops::Mul<f64> for Color {
 
 impl PartialEq for Color {
     fn eq(&self, other: &Color) -> bool {
-        const EPSILON: f64 = 0.00001;
-        if f64::abs(self.red - other.red) > EPSILON ||
-            f64::abs(self.green - other.green) > EPSILON ||
-            f64::abs(self.blue - other.blue) > EPSILON {
+        if !self.red.approx_eq(other.red) ||
+            !self.green.approx_eq(other.green) ||
+            !self.blue.approx_eq(other.blue) {
             return false;
         }
         true

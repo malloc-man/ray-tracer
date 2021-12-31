@@ -1,4 +1,5 @@
 use crate::{Intersection, Ray, objects::*, tuples::*};
+use crate::utils::{ApproxEq, EPSILON};
 
 pub fn new(min: f64, max: f64, closed: bool) -> Object {
     Object::new(Shape::Cylinder {min, max, closed})
@@ -27,7 +28,7 @@ pub fn min(cylinder: Object) -> f64 {
 pub fn intersect(cylinder: Object, ray: Ray) -> Vec<Intersection> {
     let mut vec = vec![];
     let a = ray.get_direction().x.powi(2) + ray.get_direction().z.powi(2);
-    if a < 0.00001 {
+    if a < EPSILON {
         intersect_caps(cylinder, ray, &mut vec);
         return vec;
     }
@@ -64,7 +65,7 @@ pub fn intersect(cylinder: Object, ray: Ray) -> Vec<Intersection> {
 }
 
 fn intersect_caps(cylinder: Object, ray: Ray, intersections: &mut Vec<Intersection>) {
-    if !is_closed(cylinder) || ray.get_direction().y.abs() < 0.00001 {
+    if !is_closed(cylinder) || ray.get_direction().y.approx_eq(0.0) {
         return;
     }
 
@@ -95,9 +96,9 @@ fn is_closed(cylinder: Object) -> bool {
 
 pub fn normal_at(cylinder: Object, point: Tuple) -> Tuple {
     let dist_to_y_axis_sq = point.x.powi(2) + point.z.powi(2);
-    if dist_to_y_axis_sq < 1.0 && point.y >= max(cylinder) - 0.00001 {
+    if dist_to_y_axis_sq < 1.0 && point.y >= max(cylinder) - EPSILON {
         vector(0.0, 1.0, 0.0)
-    } else if dist_to_y_axis_sq < 1.0 && point.y <= min(cylinder) + 0.00001 {
+    } else if dist_to_y_axis_sq < 1.0 && point.y <= min(cylinder) + EPSILON {
         vector(0.0, -1.0, 0.0)
     } else {
         vector(point.x, 0.0, point.z)
@@ -108,6 +109,7 @@ pub fn normal_at(cylinder: Object, point: Tuple) -> Tuple {
 mod tests {
     use super::*;
     use crate::cylinders;
+    use crate::utils::ApproxEq;
 
     #[test]
     fn test_miss_cylinder() {
@@ -142,8 +144,8 @@ mod tests {
 
         let r = Ray::new(point(0.5, 0.0, -5.0), vector(0.1, 1.0, 1.0).normalize());
         let xs = cyl.intersect(r);
-        assert!((xs[0].get_t() - 6.80798).abs() < 0.00001);
-        assert!((xs[1].get_t() - 7.08872).abs() < 0.00001);
+        assert!((xs[0].get_t().approx_eq(6.80798)));
+        assert!((xs[1].get_t().approx_eq(7.08872)));
     }
 
     #[test]

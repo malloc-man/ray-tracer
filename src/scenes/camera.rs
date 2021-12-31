@@ -67,7 +67,7 @@ impl Camera {
         for y in 0..self.vsize {
             for x in 0..self.hsize {
                 let ray = self.ray_for_pixel(x, y);
-                let color = world.color_at(ray, DEFAULT_REFLECTION_DEPTH);
+                let color = world.color_at(ray, DEFAULT_RECURSION_DEPTH);
                 image.write_pixel(x, y, color);
             }
         }
@@ -93,7 +93,7 @@ impl Camera {
                         let ray = self.ray_for_pixel(col, row + i * BAND_SIZE);
                         if (row * self.hsize) + col < band.len() {
                             band[(row * self.hsize) + col] =
-                                world.color_at(ray, DEFAULT_REFLECTION_DEPTH);
+                                world.color_at(ray, DEFAULT_RECURSION_DEPTH);
                             pixels_rendered.fetch_add(1, Ordering::SeqCst);
                         }
                     }
@@ -112,17 +112,18 @@ mod tests {
     use crate::surfaces::colors::*;
     use super::*;
     use std::f64::consts::PI;
+    use crate::utils::*;
 
     #[test]
     fn test_pixel_size_horizontal_canvas() {
         let c = Camera::new(200, 125, PI/2.0);
-        assert!(f64::abs(c.pixel_size - 0.01) < 0.00001);
+        assert!(c.pixel_size.approx_eq(0.01));
     }
 
     #[test]
     fn test_pixel_size_vertical_canvas() {
         let c = Camera::new(125, 200, PI/2.0);
-        assert!(f64::abs(c.pixel_size - 0.01) < 0.00001);
+        assert!(c.pixel_size.approx_eq(0.01));
     }
 
     #[test]

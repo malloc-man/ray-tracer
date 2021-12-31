@@ -2,6 +2,7 @@ use crate::Intersection;
 use crate::objects::*;
 use crate::rays::Ray;
 use crate::tuples::*;
+use crate::utils::ApproxEq;
 
 pub fn new() -> Object {
     Object::new(Shape::Cube)
@@ -38,7 +39,7 @@ fn check_axis(origin: f64, direction: f64) -> (f64, f64) {
     let mut tmin;
     let mut tmax;
 
-    if direction.abs() >= 0.00001 {
+    if !direction.approx_eq(0.0) {
         tmin = tmin_numerator / direction;
         tmax = tmax_numerator / direction;
     } else {

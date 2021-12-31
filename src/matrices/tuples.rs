@@ -1,4 +1,5 @@
 use std::ops;
+use crate::utils::ApproxEq;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Tuple {
@@ -92,10 +93,9 @@ impl Tuple {
 
 impl PartialEq for Tuple {
     fn eq(&self, other: &Tuple) -> bool {
-        const EPSILON: f64 = 0.00001;
-        if f64::abs(self.x - other.x) > EPSILON ||
-            f64::abs(self.y - other.y) > EPSILON ||
-            f64::abs(self.z - other.z) > EPSILON ||
+        if !self.x.approx_eq(other.x) ||
+            !self.y.approx_eq(other.y) ||
+            !self.z.approx_eq(other.z) ||
             self.v != other.v {
             return false;
         }

@@ -1,4 +1,5 @@
 use crate::{objects::*, tuples::*, rays::*};
+use crate::utils::ApproxEq;
 
 pub fn new() -> Object {
     Object::new(Shape::Plane)
@@ -9,7 +10,7 @@ pub fn normal_at() -> Tuple {
 }
 
 pub fn intersect(plane: Object, ray: Ray) -> Vec<Intersection> {
-    if f64::abs(ray.get_direction().y) < 0.00001 {
+    if ray.get_direction().y.approx_eq(0.0) {
         return vec![]
     }
     let t = -ray.get_origin().y / ray.get_direction().y;

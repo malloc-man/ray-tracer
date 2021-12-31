@@ -1,4 +1,5 @@
 use crate::matrices::matrix2::Matrix2;
+use crate::utils::EPSILON;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3 {
@@ -69,7 +70,6 @@ impl Matrix3 {
 
 impl PartialEq for Matrix3 {
     fn eq(&self, other: &Matrix3) -> bool {
-        const EPSILON: f64 = 0.00001;
         for i in 0..3 {
             for j in 0..3 {
                 if f64::abs(self.val_at(i, j) - other.val_at(i, j)) > EPSILON {

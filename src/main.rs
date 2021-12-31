@@ -12,6 +12,7 @@ mod shapes;
 mod scenes;
 pub mod rays;
 mod surfaces;
+mod utils;
 
 
 fn main() {
