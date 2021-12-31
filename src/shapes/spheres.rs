@@ -34,8 +34,8 @@ pub fn intersect(sphere: Object, ray: Ray) -> Vec<Intersection> {
         return vec![]
     }
 
-    let t1 = (-b - f64::sqrt(discriminant)) / (2.0 * a);
-    let t2 = (-b + f64::sqrt(discriminant)) / (2.0 * a);
+    let t1 = (-b - discriminant.sqrt()) / (2.0 * a);
+    let t2 = (-b + discriminant.sqrt()) / (2.0 * a);
     if t1 < t2 {
         vec![Intersection::new(t1, sphere), Intersection::new(t2, sphere)]
     } else {
@@ -57,6 +57,7 @@ pub fn hit(intersections: &Vec<Intersection>) -> Option<Intersection> {
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::FRAC_1_SQRT_2;
     use crate::*;
 
     #[test]
@@ -178,13 +179,13 @@ mod tests {
     fn test_sphere_normal_transformed() {
         let mut sphere = spheres::new();
         sphere.set_transform(translation(0.0, 1.0, 0.0));
-        assert_eq!(sphere.normal_at(point(0.0, 1.70711, -0.70711)),
-                   vector(0.0, 0.70711, -0.70711));
+        assert_eq!(sphere.normal_at(point(0.0, 1.70711, -FRAC_1_SQRT_2)),
+                   vector(0.0, FRAC_1_SQRT_2, -FRAC_1_SQRT_2));
 
         let m = scaling(1.0, 0.5, 1.0) * rotation_z(PI/5.0);
 
         sphere.set_transform(m);
-        assert_eq!(sphere.normal_at(point(0.0, f64::sqrt(2.0) / 2.0, f64::sqrt(2.0) / -2.0)),
+        assert_eq!(sphere.normal_at(point(0.0, FRAC_1_SQRT_2, -FRAC_1_SQRT_2)),
                    vector(0.0, 0.97014, -0.24254));
     }
 }

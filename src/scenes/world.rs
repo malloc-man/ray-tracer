@@ -136,7 +136,7 @@ impl World {
         if sin2_t > 1.0 {
             return black();
         }
-        let cos_t = f64::sqrt(1.0 - sin2_t);
+        let cos_t = (1.0 - sin2_t).sqrt();
         let direction = comps.normalv * ((n_ratio * cos_i) - cos_t) - comps.eyev * n_ratio;
         let refract_ray = Ray::new(comps.under_point, direction);
 
@@ -244,6 +244,7 @@ fn prepare_computations (intersection: Intersection, ray: Ray, intersection_list
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::{FRAC_1_SQRT_2, SQRT_2};
     use crate::{Intersection, Light, Matrix4, Ray, spheres, planes};
     use crate::matrices::tuples::*;
     use crate::surfaces::colors::*;
@@ -385,10 +386,10 @@ mod tests {
     fn test_compute_reflection_vector() {
         let shape = planes::new();
         let ray = Ray::new(point(0.0, 1.0, -1.0),
-                           vector(0.0, -f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/2.0));
-        let i = Intersection::new(f64::sqrt(2.0), shape);
+                           vector(0.0, -FRAC_1_SQRT_2, FRAC_1_SQRT_2));
+        let i = Intersection::new(SQRT_2, shape);
         let comps = prepare_computations(i, ray, &vec![i]);
-        assert_eq!(comps.reflectv, vector(0.0, f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/2.0));
+        assert_eq!(comps.reflectv, vector(0.0, FRAC_1_SQRT_2, FRAC_1_SQRT_2));
     }
 
     #[test]
@@ -414,8 +415,8 @@ mod tests {
         w.add_object(shape);
 
         let r = Ray::new(point(0.0, 0.0, -3.0),
-                         vector(0.0, -f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/2.0));
-        let i = Intersection::new(f64::sqrt(2.0), shape);
+                         vector(0.0, -FRAC_1_SQRT_2, FRAC_1_SQRT_2));
+        let i = Intersection::new(SQRT_2, shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
         let clr = w.reflected_color(comps, DEFAULT_RECURSION_DEPTH);
@@ -432,8 +433,8 @@ mod tests {
         w.add_object(shape);
 
         let r = Ray::new(point(0.0, 0.0, -3.0),
-                         vector(0.0, f64::sqrt(2.0)/-2.0, f64::sqrt(2.0)/2.0));
-        let i = Intersection::new(f64::sqrt(2.0), shape);
+                         vector(0.0, -FRAC_1_SQRT_2, FRAC_1_SQRT_2));
+        let i = Intersection::new(SQRT_2, shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
         let clr = w.shade_hit(comps, DEFAULT_RECURSION_DEPTH);
@@ -450,8 +451,8 @@ mod tests {
         w.add_object(shape);
 
         let r = Ray::new(point(0.0, 0.0, -3.0),
-                         vector(0.0, -f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/2.0));
-        let i = Intersection::new(f64::sqrt(2.0), shape);
+                         vector(0.0, -FRAC_1_SQRT_2, FRAC_1_SQRT_2));
+        let i = Intersection::new(SQRT_2, shape);
 
         let comps = prepare_computations(i, r, &vec![i]);
         let clr = w.reflected_color(comps, 0);
@@ -532,10 +533,10 @@ mod tests {
     fn test_total_internal_reflection() {
         let w = World::new_default();
         let shape = w.objects[0];
-        let r = Ray::new(point(0.0, 0.0, f64::sqrt(2.0)/2.0), vector(0.0, 1.0, 0.0));
+        let r = Ray::new(point(0.0, 0.0, FRAC_1_SQRT_2), vector(0.0, 1.0, 0.0));
         let xs = vec![
-            Intersection::new(f64::sqrt(2.0)/-2.0, shape),
-            Intersection::new(f64::sqrt(2.0)/2.0, shape)];
+            Intersection::new(-FRAC_1_SQRT_2, shape),
+            Intersection::new(FRAC_1_SQRT_2, shape)];
         let comps = prepare_computations(xs[1], r, &xs);
         let c = w.refracted_color(comps, 5);
         assert_eq!(c, black());
@@ -575,10 +576,9 @@ mod tests {
         ball.set_transform(translation(0.0, -3.5, -0.5));
         w.add_object(ball);
 
-        let sqrt2 = f64::sqrt(2.0);
         let r = Ray::new(point(0.0, 0.0, -3.0),
-                         vector(0.0, -sqrt2/2.0, sqrt2/2.0));
-        let xs = vec![Intersection::new(sqrt2, floor)];
+                         vector(0.0, -FRAC_1_SQRT_2, FRAC_1_SQRT_2));
+        let xs = vec![Intersection::new(SQRT_2, floor)];
 
         let comps = prepare_computations(xs[0], r, &xs);
         let clr = w.shade_hit(comps, 5);
@@ -589,12 +589,11 @@ mod tests {
     #[test]
     fn test_schlick_with_total_internal_reflection() {
         let shape = spheres::glass_sphere();
-        let sqrt2 = f64::sqrt(2.0);
-        let r = Ray::new(point(0.0, 0.0, sqrt2/2.0),
+        let r = Ray::new(point(0.0, 0.0, FRAC_1_SQRT_2),
                          vector(0.0, 1.0, 0.0));
         let xs = vec![
-            Intersection::new(-sqrt2/2.0, shape),
-            Intersection::new(sqrt2/2.0, shape)];
+            Intersection::new(-FRAC_1_SQRT_2, shape),
+            Intersection::new(FRAC_1_SQRT_2, shape)];
         let comps = prepare_computations(xs[1], r, &xs);
 
         assert_eq!(comps.schlick(), 1.0);
@@ -615,8 +614,7 @@ mod tests {
     #[test]
     fn test_shade_hit_with_schlick() {
         let mut w = World::new_default();
-        let sqrt2 = f64::sqrt(2.0);
-        let r = Ray::new(point(0.0, 0.0, -3.0), vector(0.0, -sqrt2/2.0, sqrt2/2.0));
+        let r = Ray::new(point(0.0, 0.0, -3.0), vector(0.0, -FRAC_1_SQRT_2, FRAC_1_SQRT_2));
 
         let mut floor = planes::new();
         floor.set_transform(translation(0.0, -1.0, 0.0));
@@ -631,7 +629,7 @@ mod tests {
         ball.set_transform(translation(0.0, -3.5, -0.5));
         w.add_object(ball);
 
-        let xs = vec![Intersection::new(f64::sqrt(2.0), floor)];
+        let xs = vec![Intersection::new(SQRT_2, floor)];
 
         let comps = prepare_computations(xs[0], r, &xs);
         let clr = w.shade_hit(comps, 5);

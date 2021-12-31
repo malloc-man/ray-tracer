@@ -2,7 +2,7 @@ use std::ops;
 use crate::matrices::matrix3::Matrix3;
 use crate::matrices::transformations;
 use crate::matrices::tuples::*;
-use crate::utils::EPSILON;
+use crate::utils::ApproxEq;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix4 {
@@ -102,7 +102,7 @@ impl Matrix4 {
 
     fn is_invertible(&self) -> bool {
         let d = self.determinant();
-        f64::abs(d) > EPSILON
+        !d.approx_eq(0.0)
     }
 
     pub fn invert(&self) -> Matrix4 {
@@ -146,7 +146,7 @@ impl PartialEq for Matrix4 {
     fn eq(&self, other: &Matrix4) -> bool {
         for i in 0..4 {
             for j in 0..4 {
-                if f64::abs(self.val_at(i, j) - other.val_at(i, j)) > EPSILON {
+                if !self.val_at(i, j).approx_eq(other.val_at(i, j)) {
                     return false;
                 }
             }
@@ -197,7 +197,7 @@ impl ops::Mul<Tuple> for Matrix4 {
 
 #[cfg(test)]
 mod test {
-    use std::f64::consts::PI;
+    use std::f64::consts::FRAC_PI_2;
     use super::*;
 
     #[test]
@@ -377,7 +377,7 @@ mod test {
     #[test]
     fn test_concatenated_transformations() {
         let transform = Matrix4::identity()
-            .rotate_x(PI / 2.0)
+            .rotate_x(FRAC_PI_2)
             .scale(5.0, 5.0, 5.0)
             .translate(10.0, 5.0, 7.0);
         let pt = point(1.0, 0.0, 1.0);

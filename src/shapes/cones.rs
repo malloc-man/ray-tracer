@@ -129,6 +129,7 @@ pub fn normal_at(cone: Object, point: Tuple) -> Tuple {
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::SQRT_2;
     use crate::cones;
     use crate::utils::ApproxEq;
     use super::*;
@@ -188,7 +189,7 @@ mod tests {
         assert_eq!(n, vector(0.0, 0.0, 0.0));
 
         let n = normal_at(cone, point(1.0, 1.0, 1.0));
-        assert_eq!(n, vector(1.0, -f64::sqrt(2.0), 1.0));
+        assert_eq!(n, vector(1.0, -SQRT_2, 1.0));
 
         let n = normal_at(cone, point(-1.0, -1.0, 0.0));
         assert_eq!(n, vector(-1.0, 1.0, 0.0));

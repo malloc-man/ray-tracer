@@ -31,7 +31,7 @@ impl Camera {
     }
 
     fn initialize(mut self) -> Self {
-        let half_view = f64::tan(self.field_of_view / 2.0);
+        let half_view = (self.field_of_view / 2.0).tan();
         let aspect = self.hsize as f64 / self.vsize as f64;
         if aspect >= 1.0 {
             self.half_width = half_view;
@@ -111,24 +111,24 @@ mod tests {
     use crate::transformations::view_transform;
     use crate::surfaces::colors::*;
     use super::*;
-    use std::f64::consts::PI;
+    use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI};
     use crate::utils::*;
 
     #[test]
     fn test_pixel_size_horizontal_canvas() {
-        let c = Camera::new(200, 125, PI/2.0);
+        let c = Camera::new(200, 125, FRAC_PI_2);
         assert!(c.pixel_size.approx_eq(0.01));
     }
 
     #[test]
     fn test_pixel_size_vertical_canvas() {
-        let c = Camera::new(125, 200, PI/2.0);
+        let c = Camera::new(125, 200, FRAC_PI_2);
         assert!(c.pixel_size.approx_eq(0.01));
     }
 
     #[test]
     fn test_ray_for_pixel_center() {
-        let c = Camera::new(201, 101, PI/2.0);
+        let c = Camera::new(201, 101, FRAC_PI_2);
         let r = c.ray_for_pixel(100, 50);
 
         assert_eq!(r.get_origin(), origin());
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_ray_for_pixel_corner() {
-        let c = Camera::new(201, 101, PI/2.0);
+        let c = Camera::new(201, 101, FRAC_PI_2);
         let r = c.ray_for_pixel(0, 0);
 
         assert_eq!(r.get_origin(), origin());
@@ -146,23 +146,23 @@ mod tests {
 
     #[test]
     fn test_ray_for_pixel_transformed() {
-        let mut c = Camera::new(201, 101, PI/2.0);
+        let mut c = Camera::new(201, 101, FRAC_PI_2);
         c.set_transform(
             Matrix4::identity()
                 .translate(0.0, -2.0, 5.0)
-                .rotate_y(PI/4.0)
+                .rotate_y(FRAC_PI_4)
         );
 
         let r = c.ray_for_pixel(100, 50);
 
         assert_eq!(r.get_origin(), point(0.0, 2.0, -5.0));
-        assert_eq!(r.get_direction(), vector(f64::sqrt(2.0)/2.0, 0.0, f64::sqrt(2.0)/-2.0));
+        assert_eq!(r.get_direction(), vector(FRAC_1_SQRT_2, 0.0, -FRAC_1_SQRT_2));
     }
 
     #[test]
     fn test_render_world() {
         let w = World::new_default();
-        let mut c = Camera::new(11, 11, PI/2.0);
+        let mut c = Camera::new(11, 11, FRAC_PI_2);
 
         let from = point(0.0, 0.0, -5.0);
         let to = point(0.0, 0.0, 0.0);
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn test_parallel_render_world() {
         let w = World::new_default();
-        let mut c = Camera::new(11, 11, PI/2.0);
+        let mut c = Camera::new(11, 11, FRAC_PI_2);
 
         let from = point(0.0, 0.0, -5.0);
         let to = point(0.0, 0.0, 0.0);

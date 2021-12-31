@@ -1,4 +1,4 @@
-use crate::utils::EPSILON;
+use crate::utils::ApproxEq;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix2 {
@@ -29,7 +29,7 @@ impl PartialEq for Matrix2 {
     fn eq(&self, other: &Matrix2) -> bool {
         for i in 0..2 {
             for j in 0..2 {
-                if f64::abs(self.val_at(i, j) - other.val_at(i, j)) > EPSILON {
+                if !self.val_at(i, j).approx_eq(other.val_at(i, j)) {
                     return false;
                 }
             }

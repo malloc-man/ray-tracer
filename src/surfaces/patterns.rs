@@ -83,7 +83,7 @@ pub fn test_pattern() -> Pattern {
 }
 
 fn stripe_at(a: Color, b: Color, point: Tuple) -> Color {
-    if (f64::floor(point.x) as isize) % 2 == 0 {
+    if (point.x.floor() as isize) % 2 == 0 {
         a
     } else {
         b
@@ -92,7 +92,7 @@ fn stripe_at(a: Color, b: Color, point: Tuple) -> Color {
 
 fn gradient_at(a: Color, b: Color, point: Tuple) -> Color {
     let distance = b - a;
-    let fraction = point.x - f64::floor(point.x);
+    let fraction = point.x - point.x.floor();
     a + distance * fraction
 }
 

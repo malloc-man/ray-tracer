@@ -83,6 +83,7 @@ pub fn lighting(material: Material, object: Object, light: Light, point: Tuple, 
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::FRAC_1_SQRT_2;
     use super::*;
     use crate::matrices::tuples::*;
     use crate::spheres;
@@ -100,7 +101,7 @@ mod tests {
         let result = lighting(m, object, light, position, eyev, normalv, false);
         assert_eq!(result, color(1.9, 1.9, 1.9));
 
-        let eyev = vector(0.0, f64::sqrt(2.0)/2.0, f64::sqrt(2.0)/-2.0);
+        let eyev = vector(0.0, FRAC_1_SQRT_2, -FRAC_1_SQRT_2);
         let result = lighting(m, object, light, position, eyev, normalv, false);
         assert_eq!(result, color(1.0, 1.0, 1.0));
 
@@ -110,7 +111,7 @@ mod tests {
         let result = lighting(m, object, light, position, eyev, normalv, false);
         assert_eq!(result, color(0.7364, 0.7364, 0.7364));
 
-        let eyev = vector(0.0, f64::sqrt(2.0)/-2.0, f64::sqrt(2.0)/-2.0);
+        let eyev = vector(0.0, -FRAC_1_SQRT_2, -FRAC_1_SQRT_2);
         let result = lighting(m, object, light, position, eyev, normalv, false);
         assert_eq!(result, color(1.6364, 1.6364, 1.6364));
 

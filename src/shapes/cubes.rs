@@ -20,8 +20,8 @@ pub fn intersect(cube: Object, ray: Ray) -> Vec<Intersection> {
 
     let (ztmin, ztmax) = check_axis(ray.get_origin().z, ray.get_direction().z);
 
-    let tmin = f64::max(f64::max(xtmin, ytmin), ztmin);
-    let tmax = f64::min(f64::min(xtmax, ytmax), ztmax);
+    let tmin = xtmin.max(ytmin).max(ztmin);
+    let tmax = xtmax.min(ytmax).min(ztmax);
 
     if tmin > tmax {
         return vec;
@@ -55,7 +55,7 @@ fn check_axis(origin: f64, direction: f64) -> (f64, f64) {
 }
 
 pub fn normal_at(point: Tuple) -> Tuple {
-    let maxc = f64::max(f64::max(point.x.abs(), point.y.abs()), point.z.abs());
+    let maxc = point.x.abs().max(point.y.abs()).max(point.z.abs());
 
     if maxc == point.x.abs() {
         vector(point.x, 0.0, 0.0)

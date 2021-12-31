@@ -57,7 +57,7 @@ impl Tuple {
 
     pub fn magnitude(&self) -> f64 {
         if self.is_vector() {
-            f64::sqrt(self.x.powi(2) + self.y.powi(2) + self.z.powi(2) + self.v.pow(2) as f64)
+            (self.x.powi(2) + self.y.powi(2) + self.z.powi(2) + self.v.pow(2) as f64).sqrt()
         } else {
             panic!("Cannot get magnitude of point");
         }
@@ -167,6 +167,7 @@ impl ops::Div<f64> for Tuple {
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::FRAC_1_SQRT_2;
     use super::*;
 
     #[test]
@@ -296,7 +297,7 @@ mod tests {
         assert_eq!(r, vector(1.0, 1.0, 0.0));
 
         let vct = vector(0.0, -1.0, 0.0);
-        let p = f64::sqrt(2.0) / 2.0;
+        let p = FRAC_1_SQRT_2;
         let normal = vector(p, p, 0.0);
         let r = vct.reflect_vector(normal);
         assert_eq!(r, vector(1.0, 0.0, 0.0));

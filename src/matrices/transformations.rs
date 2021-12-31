@@ -24,8 +24,8 @@ pub fn scaling(x: f64, y: f64, z: f64) -> Matrix4 {
 pub fn rotation_x(rad: f64) -> Matrix4 {
     let m_vec = [
         [1.0, 0.0, 0.0, 0.0],
-        [0.0, f64::cos(rad), -1.0 * f64::sin(rad), 0.0],
-        [0.0, f64::sin(rad), f64::cos(rad), 0.0],
+        [0.0, rad.cos(), -(rad.sin()), 0.0],
+        [0.0, rad.sin(), rad.cos(), 0.0],
         [0.0, 0.0, 0.0, 1.0]];
 
     Matrix4::convert(m_vec)
@@ -33,9 +33,9 @@ pub fn rotation_x(rad: f64) -> Matrix4 {
 
 pub fn rotation_y(rad: f64) -> Matrix4 {
     let m_vec = [
-        [f64::cos(rad), 0.0, f64::sin(rad), 0.0],
+        [rad.cos(), 0.0, rad.sin(), 0.0],
         [0.0, 1.0, 0.0, 0.0],
-        [-1.0 * f64::sin(rad), 0.0, f64::cos(rad), 0.0],
+        [-(rad.sin()), 0.0, rad.cos(), 0.0],
         [0.0, 0.0, 0.0, 1.0]];
 
     Matrix4::convert(m_vec)
@@ -43,8 +43,8 @@ pub fn rotation_y(rad: f64) -> Matrix4 {
 
 pub fn rotation_z(rad: f64) -> Matrix4 {
     let m_vec = [
-        [f64::cos(rad), -1.0 * f64::sin(rad), 0.0, 0.0],
-        [f64::sin(rad), f64::cos(rad), 0.0, 0.0],
+        [rad.cos(), -(rad.sin()), 0.0, 0.0],
+        [rad.sin(), rad.cos(), 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 1.0]];
 
@@ -79,7 +79,7 @@ pub fn view_transform(from: Tuple, to: Tuple, up: Tuple) -> Matrix4 {
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::PI;
+    use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI};
     use crate::matrices::tuples::*;
     use super::*;
 
@@ -112,34 +112,30 @@ mod tests {
     #[test]
     fn test_rotate_x() {
         let p = point(0.0, 1.0, 0.0);
-        let half_quarter = rotation_x(PI * 0.25);
-        let full_quarter = rotation_x(PI * 0.5);
-        assert_eq!(half_quarter * p,
-                   point(0.0, 0.5 * f64::sqrt(2.0), 0.5 * f64::sqrt(2.0)));
+        let half_quarter = rotation_x(FRAC_PI_4);
+        let full_quarter = rotation_x(FRAC_PI_2);
+        assert_eq!(half_quarter * p, point(0.0, FRAC_1_SQRT_2, FRAC_1_SQRT_2));
         assert_eq!(full_quarter * p, point(0.0, 0.0, 1.0));
 
         let inverse = half_quarter.invert();
-        assert_eq!(inverse * p,
-                   point(0.0, 0.5 * f64::sqrt(2.0), -0.5 * f64::sqrt(2.0)));
+        assert_eq!(inverse * p, point(0.0, FRAC_1_SQRT_2, -FRAC_1_SQRT_2));
     }
 
     #[test]
     fn test_rotate_y() {
         let p = point(0.0, 0.0, 1.0);
-        let half_quarter = rotation_y(PI * 0.25);
-        let full_quarter = rotation_y(PI * 0.5);
-        assert_eq!(half_quarter * p,
-                   point(f64::sqrt(2.0) * 0.5, 0.0, f64::sqrt(2.0) * 0.5));
+        let half_quarter = rotation_y(FRAC_PI_4);
+        let full_quarter = rotation_y(FRAC_PI_2);
+        assert_eq!(half_quarter * p, point(FRAC_1_SQRT_2, 0.0, FRAC_1_SQRT_2));
         assert_eq!(full_quarter * p, point(1.0, 0.0, 0.0));
     }
 
     #[test]
     fn test_rotate_z() {
         let p = point(0.0, 1.0, 0.0);
-        let half_quarter = rotation_z(PI * 0.25);
-        let full_quarter = rotation_z(PI * 0.5);
-        assert_eq!(half_quarter * p,
-                   point(f64::sqrt(2.0) * -0.5, f64::sqrt(2.0) * 0.5, 0.0));
+        let half_quarter = rotation_z(FRAC_PI_4);
+        let full_quarter = rotation_z(FRAC_PI_2);
+        assert_eq!(half_quarter * p, point(-FRAC_1_SQRT_2, FRAC_1_SQRT_2, 0.0));
         assert_eq!(full_quarter * p, point(-1.0, 0.0, 0.0));
     }
 
