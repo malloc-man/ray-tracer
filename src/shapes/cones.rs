@@ -1,5 +1,4 @@
-use crate::{Intersection, Ray, objects::*, tuples::*};
-use crate::utils::{ApproxEq, EPSILON};
+use crate::prelude::*;
 
 pub fn new(min: f64, max: f64, closed: bool) -> Object {
     Object::new(Shape::Cone {min, max, closed})
@@ -129,9 +128,6 @@ pub fn normal_at(cone: Object, point: Tuple) -> Tuple {
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::SQRT_2;
-    use crate::cones;
-    use crate::utils::ApproxEq;
     use super::*;
 
     #[test]

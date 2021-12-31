@@ -1,4 +1,4 @@
-use crate::utils::ApproxEq;
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix2 {
@@ -40,7 +40,7 @@ impl PartialEq for Matrix2 {
 
 #[cfg(test)]
 mod tests {
-    use crate::matrices::matrix2::Matrix2;
+    use crate::prelude::*;
 
     #[test]
     fn test_determinant_2x2() {

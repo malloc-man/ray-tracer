@@ -1,6 +1,4 @@
-use crate::{Matrix4, solid};
-use crate::surfaces::colors::*;
-use crate::surfaces::patterns::Pattern;
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Material {

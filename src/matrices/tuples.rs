@@ -1,5 +1,5 @@
 use std::ops;
-use crate::utils::ApproxEq;
+use crate::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Tuple {
@@ -167,7 +167,6 @@ impl ops::Div<f64> for Tuple {
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::FRAC_1_SQRT_2;
     use super::*;
 
     #[test]

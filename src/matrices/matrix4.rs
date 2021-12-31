@@ -1,8 +1,5 @@
 use std::ops;
-use crate::matrices::matrix3::Matrix3;
-use crate::matrices::transformations;
-use crate::matrices::tuples::*;
-use crate::utils::ApproxEq;
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix4 {
@@ -122,23 +119,23 @@ impl Matrix4 {
     }
 
     pub fn translate(self, x: f64, y: f64, z: f64) -> Self {
-        transformations::translation(x, y, z) * self
+        translation(x, y, z) * self
     }
 
     pub fn scale(self, x: f64, y: f64, z: f64) -> Self {
-        transformations::scaling(x, y, z) * self
+        scaling(x, y, z) * self
     }
 
     pub fn rotate_x(self, rad: f64) -> Self {
-        transformations::rotation_x(rad) * self
+        rotation_x(rad) * self
     }
 
     pub fn rotate_y(self, rad: f64) -> Self {
-        transformations::rotation_y(rad) * self
+        rotation_y(rad) * self
     }
 
     pub fn rotate_z(self, rad: f64) -> Self {
-        transformations::rotation_z(rad) * self
+        rotation_z(rad) * self
     }
 }
 
@@ -197,7 +194,6 @@ impl ops::Mul<Tuple> for Matrix4 {
 
 #[cfg(test)]
 mod test {
-    use std::f64::consts::FRAC_PI_2;
     use super::*;
 
     #[test]

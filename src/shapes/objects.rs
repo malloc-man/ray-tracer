@@ -1,6 +1,4 @@
-use crate::{Color, cones, cubes, cylinders, Intersection, Material, Pattern, planes, Ray, spheres};
-use crate::matrices::tuples::*;
-use crate::matrix4::Matrix4;
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Object {

@@ -1,6 +1,4 @@
-use crate::{black, Intersection, Ray, solid};
-use crate::shapes::objects::{Object, Shape};
-use crate::matrices::tuples::*;
+use crate::prelude::*;
 
 pub fn new() -> Object {
     Object::new(Shape::Sphere)
@@ -57,8 +55,7 @@ pub fn hit(intersections: &Vec<Intersection>) -> Option<Intersection> {
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::FRAC_1_SQRT_2;
-    use crate::*;
+    use super::*;
 
     #[test]
     fn test_intersect() {
@@ -114,7 +111,7 @@ mod tests {
                            vector(0.0, 0.0, 1.0));
 
         let mut sphere = spheres::new();
-        sphere.set_transform(transformations::scaling(2.0, 2.0, 2.0));
+        sphere.set_transform(scaling(2.0, 2.0, 2.0));
 
         let local_ray = ray.transform(sphere.get_inverse_transform());
         let xs = spheres::intersect(sphere, local_ray);
@@ -131,7 +128,7 @@ mod tests {
                            vector(0.0, 0.0, 1.0));
 
         let mut sphere = spheres::new();
-        sphere.set_transform(transformations::translation(5.0, 0.0, 0.0));
+        sphere.set_transform(translation(5.0, 0.0, 0.0));
 
         let local_ray = ray.transform(sphere.get_inverse_transform());
         assert!(spheres::intersect(sphere, local_ray).is_empty());

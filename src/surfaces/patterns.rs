@@ -1,6 +1,4 @@
-use crate::Matrix4;
-use crate::tuples::*;
-use super::colors::*;
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Pattern {
@@ -114,7 +112,7 @@ fn checker_3d_at(a: Color, b: Color, point: Tuple) -> Color {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use super::*;
 
     #[test]
     fn test_stripe_y() {

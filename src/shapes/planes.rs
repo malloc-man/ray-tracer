@@ -1,5 +1,4 @@
-use crate::{objects::*, tuples::*, rays::*};
-use crate::utils::ApproxEq;
+use crate::prelude::*;
 
 pub fn new() -> Object {
     Object::new(Shape::Plane)

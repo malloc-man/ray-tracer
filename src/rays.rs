@@ -1,7 +1,5 @@
 use std::cmp::Ordering;
-use crate::matrix4::Matrix4;
-use crate::objects::Object;
-use crate::matrices::tuples::Tuple;
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Ray {
@@ -75,9 +73,7 @@ impl PartialOrd for Intersection {
 
 #[cfg(test)]
 mod tests {
-    use crate::matrices::tuples::*;
     use super::*;
-    use crate::matrices::transformations;
 
     #[test]
     fn test_position() {
@@ -93,7 +89,7 @@ mod tests {
     fn test_ray_translate() {
         let ray = Ray::new(point(1.0, 2.0, 3.0),
                            vector(0.0, 1.0, 0.0));
-        let m = transformations::translation(3.0, 4.0, 5.0);
+        let m = translation(3.0, 4.0, 5.0);
         let transformed_ray = ray.transform(m);
         assert_eq!(transformed_ray.get_origin(), point(4.0, 6.0, 8.0));
         assert_eq!(transformed_ray.get_direction(), vector(0.0, 1.0, 0.0));
@@ -103,7 +99,7 @@ mod tests {
     fn test_ray_scale() {
         let ray = Ray::new(point(1.0, 2.0, 3.0),
                            vector(0.0, 1.0, 0.0));
-        let m = transformations::scaling(2.0, 3.0, 4.0);
+        let m = scaling(2.0, 3.0, 4.0);
         let transformed_ray = ray.transform(m);
         assert_eq!(transformed_ray.get_origin(), point(2.0, 6.0, 12.0));
         assert_eq!(transformed_ray.get_direction(), vector(0.0, 3.0, 0.0));

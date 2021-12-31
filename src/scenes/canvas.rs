@@ -1,8 +1,6 @@
-use std::fs;
-use std::error::Error;
-use std::io::Write;
-use crate::surfaces::colors::*;
+use std::{fs, error::Error, io::Write};
 use image::*;
+use crate::prelude::*;
 
 pub struct Canvas {
     height: usize,
@@ -97,7 +95,7 @@ impl Canvas {
 #[cfg(test)]
 mod tests {
     use std::io::Read;
-    use crate::scenes::canvas::*;
+    use super::*;
 
     #[test]
     fn test_initialize() {

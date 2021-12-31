@@ -1,8 +1,4 @@
-use crate::Tuple;
-use crate::surfaces::colors::*;
-use crate::LightType::PointLight;
-use crate::surfaces::materials::*;
-use crate::objects::*;
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Light {
@@ -21,7 +17,7 @@ impl Light {
         Self {
             position,
             intensity,
-            light: PointLight
+            light: LightType::PointLight
         }
     }
 
@@ -83,11 +79,7 @@ pub fn lighting(material: Material, object: Object, light: Light, point: Tuple, 
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::FRAC_1_SQRT_2;
     use super::*;
-    use crate::matrices::tuples::*;
-    use crate::spheres;
-    use crate::surfaces::patterns::*;
 
     #[test]
     fn test_lighting() {

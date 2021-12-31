@@ -1,5 +1,4 @@
-use crate::{Intersection, Ray, objects::*, tuples::*};
-use crate::utils::{ApproxEq, EPSILON};
+use crate::prelude::*;
 
 pub fn new(min: f64, max: f64, closed: bool) -> Object {
     Object::new(Shape::Cylinder {min, max, closed})
@@ -108,8 +107,6 @@ pub fn normal_at(cylinder: Object, point: Tuple) -> Tuple {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cylinders;
-    use crate::utils::ApproxEq;
 
     #[test]
     fn test_miss_cylinder() {

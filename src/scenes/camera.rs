@@ -1,9 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use rayon::prelude::*;
-use crate::{matrix4::*, Ray};
-use crate::matrices::tuples::*;
-use crate::scenes::canvas::*;
-use crate::scenes::world::*;
+use crate::prelude::*;
 
 pub struct Camera {
     hsize: usize,
@@ -108,11 +105,7 @@ impl Camera {
 
 #[cfg(test)]
 mod tests {
-    use crate::transformations::view_transform;
-    use crate::surfaces::colors::*;
     use super::*;
-    use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4};
-    use crate::utils::*;
 
     #[test]
     fn test_pixel_size_horizontal_canvas() {

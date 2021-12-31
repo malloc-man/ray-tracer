@@ -1,5 +1,4 @@
-use crate::matrices::matrix2::Matrix2;
-use crate::utils::ApproxEq;
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3 {

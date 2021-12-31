@@ -1,21 +1,23 @@
-#![allow(dead_code)]
-
-use std::f64::consts::PI;
-use {matrices::*, shapes::*};
-use matrices::tuples::*;
-use scenes::{camera::*, lights::*, world::*};
-use surfaces::{materials::*, colors::*, patterns::*};
-use crate::{matrix4::*, rays::*};
-use surfaces::patterns::checker_3d;
-use crate::transformations::*;
-
-mod matrices;
-mod shapes;
-mod scenes;
+pub mod matrices;
+pub mod scenes;
+pub mod shapes;
+pub mod surfaces;
 pub mod rays;
-mod surfaces;
-mod utils;
+pub mod utils;
 
+mod prelude {
+    pub use crate::matrices::{tuples::*, matrix4::*, matrix3::*, matrix2::*, transformations::*};
+    pub use crate::surfaces::{patterns::*, materials::*, colors::*};
+    pub use crate::scenes::{camera::*, lights::*, world::*, canvas::*};
+    pub use crate::shapes::{cones::*, cubes::*, cylinders::*, objects::*, planes::*, spheres::*};
+    pub use crate::shapes::{cones, cubes, cylinders, objects, planes, spheres};
+    pub use crate::rays::*;
+    pub use crate::utils::*;
+    pub use crate::{matrices, scenes, shapes, surfaces, rays, utils};
+    pub use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI, SQRT_2};
+}
+
+use crate::prelude::*;
 
 fn main() {
     let mut floor = planes::new();

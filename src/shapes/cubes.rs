@@ -1,8 +1,4 @@
-use crate::Intersection;
-use crate::objects::*;
-use crate::rays::Ray;
-use crate::tuples::*;
-use crate::utils::ApproxEq;
+use crate::prelude::*;
 
 pub fn new() -> Object {
     Object::new(Shape::Cube)
@@ -69,8 +65,6 @@ pub fn normal_at(point: Tuple) -> Tuple {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shapes::cubes;
-    use crate::vector;
 
     #[test]
     fn test_local_intersect() {

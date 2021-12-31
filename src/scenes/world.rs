@@ -1,11 +1,4 @@
-use crate::{Intersection, Material, spheres, transformations};
-use crate::matrices::tuples::*;
-use crate::objects::Object;
-use crate::rays::*;
-use crate::scenes::lights::*;
-use crate::surfaces::colors::*;
-use crate::surfaces::patterns::*;
-use crate::utils::EPSILON;
+use crate::prelude::*;
 
 pub const DEFAULT_RECURSION_DEPTH: usize = 5;
 
@@ -33,7 +26,7 @@ impl World {
         sphere1.set_material(material);
 
         let mut sphere2 = spheres::new();
-        sphere2.set_transform(transformations::scaling(0.5, 0.5, 0.5));
+        sphere2.set_transform(scaling(0.5, 0.5, 0.5));
 
         let objects = vec![sphere1, sphere2];
 
@@ -244,12 +237,6 @@ fn prepare_computations (intersection: Intersection, ray: Ray, intersection_list
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::{FRAC_1_SQRT_2, SQRT_2};
-    use crate::{Intersection, Light, Matrix4, Ray, spheres, planes};
-    use crate::matrices::tuples::*;
-    use crate::surfaces::colors::*;
-    use crate::transformations::{scaling, translation};
-    use crate::utils::ApproxEq;
     use super::*;
 
     #[test]

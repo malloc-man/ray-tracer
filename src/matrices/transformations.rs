@@ -1,5 +1,4 @@
-use crate::{matrix4::*};
-use crate::matrices::tuples::*;
+use crate::prelude::*;
 
 pub fn translation(x: f64, y: f64, z: f64) -> Matrix4 {
     let m_vec = [
@@ -79,8 +78,6 @@ pub fn view_transform(from: Tuple, to: Tuple, up: Tuple) -> Matrix4 {
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4};
-    use crate::matrices::tuples::*;
     use super::*;
 
     #[test]
