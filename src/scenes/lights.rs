@@ -85,7 +85,6 @@ pub fn lighting(material: Material, object: Object, light: Light, point: Tuple, 
 mod tests {
     use super::*;
     use crate::matrices::tuples::*;
-    use crate::surfaces::patterns::Pattern;
     use crate::spheres;
 
     #[test]

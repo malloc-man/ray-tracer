@@ -158,4 +158,33 @@ mod tests {
         let xs = spheres::intersect(sphere, local_ray);
         spheres::hit(&xs).unwrap();
     }
+
+    #[test]
+    fn test_sphere_normal() {
+        let sphere = spheres::new();
+
+        assert_eq!(sphere.normal_at(point(1.0, 0.0, 0.0)), vector(1.0, 0.0, 0.0));
+        assert_eq!(sphere.normal_at(point(0.0, 1.0, 0.0)), vector(0.0, 1.0, 0.0));
+        assert_eq!(sphere.normal_at(point(0.0, 0.0, 1.0)), vector(0.0, 0.0, 1.0));
+
+        let f = f64::sqrt(3.0) / 3.0;
+
+        let n = sphere.normal_at(point(f, f, f));
+        assert_eq!(n, vector(f, f, f));
+        assert_eq!(n, n.normalize());
+    }
+
+    #[test]
+    fn test_sphere_normal_transformed() {
+        let mut sphere = spheres::new();
+        sphere.set_transform(translation(0.0, 1.0, 0.0));
+        assert_eq!(sphere.normal_at(point(0.0, 1.70711, -0.70711)),
+                   vector(0.0, 0.70711, -0.70711));
+
+        let m = scaling(1.0, 0.5, 1.0) * rotation_z(PI/5.0);
+
+        sphere.set_transform(m);
+        assert_eq!(sphere.normal_at(point(0.0, f64::sqrt(2.0) / 2.0, f64::sqrt(2.0) / -2.0)),
+                   vector(0.0, 0.97014, -0.24254));
+    }
 }

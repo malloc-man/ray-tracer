@@ -1,4 +1,4 @@
-use crate::{Color, Intersection, Material, Ray, spheres, planes, Pattern, cubes, cylinders, cones};
+use crate::{Color, cones, cubes, cylinders, Intersection, Material, Pattern, planes, Ray, spheres};
 use crate::matrices::tuples::*;
 use crate::matrix4::Matrix4;
 
@@ -190,73 +190,5 @@ impl Object {
         let local_point = self.inverse_transform * point;
         let pattern_space_point = self.get_pattern_inverse_transform() * local_point;
         self.get_pattern().pattern_at(pattern_space_point)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::f64::consts::PI;
-    use crate::{spheres, transformations, surfaces::colors::*, surfaces::patterns::*};
-    use crate::shapes::objects::Object;
-    use crate::shapes::objects::Shape::Sphere;
-    use crate::matrices::tuples::*;
-    use crate::transformations::{scaling, translation};
-
-    #[test]
-    fn test_sphere_normal() {
-        let sphere = Object::new(Sphere);
-
-        assert_eq!(sphere.normal_at(point(1.0, 0.0, 0.0)), vector(1.0, 0.0, 0.0));
-        assert_eq!(sphere.normal_at(point(0.0, 1.0, 0.0)), vector(0.0, 1.0, 0.0));
-        assert_eq!(sphere.normal_at(point(0.0, 0.0, 1.0)), vector(0.0, 0.0, 1.0));
-
-        let f = f64::sqrt(3.0) / 3.0;
-
-        let n = sphere.normal_at(point(f, f, f));
-        assert_eq!(n, vector(f, f, f));
-        assert_eq!(n, n.normalize());
-    }
-
-    #[test]
-    fn test_sphere_normal_transformed() {
-        let mut sphere = Object::new(Sphere);
-        sphere.set_transform(transformations::translation(0.0, 1.0, 0.0));
-        assert_eq!(sphere.normal_at(point(0.0, 1.70711, -0.70711)),
-                   vector(0.0, 0.70711, -0.70711));
-
-        let m = transformations::scaling(1.0, 0.5, 1.0) * transformations::rotation_z(PI/5.0);
-
-        sphere.set_transform(m);
-        assert_eq!(sphere.normal_at(point(0.0, f64::sqrt(2.0) / 2.0, f64::sqrt(2.0) / -2.0)),
-                   vector(0.0, 0.97014, -0.24254));
-    }
-
-    #[test]
-    fn test_stripe_at_object_with_obj_transformation() {
-        let mut object = spheres::new();
-        object.set_transform(transformations::scaling(2.0, 2.0, 2.0));
-        object.set_pattern(stripe(white(), black()));
-
-        let c = object.pattern_at_object(point(1.5, 0.0, 0.0));
-        assert_eq!(c, white());
-    }
-
-    #[test]
-    fn test_stripe_at_object_with_pattern_transformation() {
-        let mut object = spheres::new();
-        object.set_pattern(stripe(white(), black()));
-        object.set_pattern_transform(scaling(2.0, 2.0, 2.0));
-        let c = object.pattern_at_object(point(1.5, 0.0, 0.0));
-        assert_eq!(c, white());
-    }
-
-    #[test]
-    fn test_stripe_at_object_with_pattern_and_obj_transformations() {
-        let mut object = spheres::new();
-        object.set_transform(scaling(2.0, 2.0, 2.0));
-        object.set_pattern(stripe(white(), black()));
-        object.set_pattern_transform(translation(0.5, 0.0, 0.0));
-        let c = object.pattern_at_object(point(2.5, 0.0, 0.0));
-        assert_eq!(c, white());
     }
 }

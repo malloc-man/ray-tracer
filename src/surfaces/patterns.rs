@@ -1,4 +1,4 @@
-use crate::Matrix4;
+use crate::{Matrix4, scaling, spheres, translation};
 use crate::tuples::*;
 use super::colors::*;
 
@@ -179,5 +179,34 @@ mod tests {
         assert_eq!(pattern.pattern_at(origin()), white());
         assert_eq!(pattern.pattern_at(point(0.0,0.0, 0.99)), white());
         assert_eq!(pattern.pattern_at(point(0.0,0.0, 1.01)), black());
+    }
+
+    #[test]
+    fn test_stripe_at_object_with_pattern_transformation() {
+        let mut object = spheres::new();
+        object.set_pattern(stripe(white(), black()));
+        object.set_pattern_transform(scaling(2.0, 2.0, 2.0));
+        let c = object.pattern_at_object(point(1.5, 0.0, 0.0));
+        assert_eq!(c, white());
+    }
+
+    #[test]
+    fn test_stripe_at_object_with_pattern_and_obj_transformations() {
+        let mut object = spheres::new();
+        object.set_transform(scaling(2.0, 2.0, 2.0));
+        object.set_pattern(stripe(white(), black()));
+        object.set_pattern_transform(translation(0.5, 0.0, 0.0));
+        let c = object.pattern_at_object(point(2.5, 0.0, 0.0));
+        assert_eq!(c, white());
+    }
+
+    #[test]
+    fn test_stripe_at_object_with_obj_transformation() {
+        let mut object = spheres::new();
+        object.set_transform(scaling(2.0, 2.0, 2.0));
+        object.set_pattern(stripe(white(), black()));
+
+        let c = object.pattern_at_object(point(1.5, 0.0, 0.0));
+        assert_eq!(c, white());
     }
 }

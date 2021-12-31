@@ -75,7 +75,7 @@ impl Camera {
     }
 
     pub fn parallel_render(&self, world: &World) -> Canvas {
-        let mut pixels_rendered = AtomicUsize::new(0);
+        let pixels_rendered = AtomicUsize::new(0);
 
         println!("Beginning render...");
 
