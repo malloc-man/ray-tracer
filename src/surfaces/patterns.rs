@@ -1,4 +1,4 @@
-use crate::{Matrix4, scaling, spheres, translation};
+use crate::Matrix4;
 use crate::tuples::*;
 use super::colors::*;
 
@@ -114,7 +114,7 @@ fn checker_3d_at(a: Color, b: Color, point: Tuple) -> Color {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::*;
 
     #[test]
     fn test_stripe_y() {

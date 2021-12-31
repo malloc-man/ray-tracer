@@ -1,7 +1,7 @@
 use crate::Tuple;
 use crate::surfaces::colors::*;
 use crate::LightType::PointLight;
-use crate::surfaces::{materials::*, patterns::*};
+use crate::surfaces::materials::*;
 use crate::objects::*;
 
 #[derive(Copy, Clone, Debug)]
@@ -87,6 +87,7 @@ mod tests {
     use super::*;
     use crate::matrices::tuples::*;
     use crate::spheres;
+    use crate::surfaces::patterns::*;
 
     #[test]
     fn test_lighting() {
