@@ -19,6 +19,7 @@ impl World {
         let mut sphere1 = spheres::new();
         let mut material = Material::new();
         material.set_color(color(0.8, 1.0, 0.6))
+            .set_pattern(solid())
             .set_ambient(0.1)
             .set_diffuse(0.7)
             .set_specular(0.2)
@@ -26,7 +27,9 @@ impl World {
         sphere1.set_material(material);
 
         let mut sphere2 = spheres::new();
-        sphere2.set_transform(scaling(0.5, 0.5, 0.5));
+        sphere2.scale_x(0.5);
+        sphere2.scale_y(0.5);
+        sphere2.scale_z(0.5);
 
         let objects = vec![sphere1, sphere2];
 
@@ -46,6 +49,8 @@ impl World {
     pub fn objects(&mut self) -> &mut Vec<Object> {
         &mut self.objects
     }
+
+    pub fn read_objects(&self) -> &Vec<Object> { &self.objects }
 
     fn intersect_world(&self, ray: Ray) -> Vec<Intersection> {
         let mut intersections: Vec<Intersection> = vec![];

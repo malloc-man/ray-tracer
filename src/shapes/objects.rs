@@ -1,4 +1,5 @@
 use std::fmt::Formatter;
+use crate::egui::Key::M;
 use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -8,6 +9,7 @@ pub struct Object {
     inverse_transform: Matrix4,
     inverse_transform_transposed: Matrix4,
     pub shape: Shape,
+    transformations_list: [f64; 15],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -31,6 +33,8 @@ impl std::fmt::Display for Shape {
     }
 }
 
+/* ------------------------------------------------------------------------------------ */
+
 impl Object {
     pub fn new(shape: Shape) -> Self {
         Self {
@@ -39,8 +43,17 @@ impl Object {
             inverse_transform: Matrix4::identity(),
             inverse_transform_transposed: Matrix4::identity(),
             shape,
+            transformations_list: [
+                0.0, 0.0, 0.0,
+                1.0, 1.0, 1.0,
+                0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0
+            ],
         }
     }
+
+    /* --------------------------- general transformations --------------------------- */
 
     pub fn set_transform(&mut self, transform: Matrix4) -> &Self {
         self.transform = transform;
@@ -53,6 +66,33 @@ impl Object {
         self.transform
     }
 
+    pub fn update_transform(&mut self) {
+        let translation = translation(
+            self.get_translate_x(),
+            self.get_translate_y(),
+            self.get_translate_z(),
+        );
+        let scaling = scaling(
+            self.get_scale_x(),
+            self.get_scale_y(),
+            self.get_scale_z(),
+        );
+        let rotation_x = rotation_x(self.get_rotate_x());
+        let rotation_y = rotation_y(self.get_rotate_y());
+        let rotation_z = rotation_z(self.get_rotate_z());
+
+        let shear = shearing(
+            self.get_shear_xy(),
+            self.get_shear_xz(),
+            self.get_shear_yx(),
+            self.get_shear_yz(),
+            self.get_shear_zx(),
+            self.get_shear_zy(),
+        );
+
+        self.set_transform(translation * scaling * rotation_x * rotation_y * rotation_z * shear);
+    }
+
     pub fn get_inverse_transform(&self) -> Matrix4 {
         self.inverse_transform
     }
@@ -61,18 +101,149 @@ impl Object {
         self.inverse_transform_transposed
     }
 
-    pub fn set_material(&mut self, material: Material) -> &mut Self {
-        self.material = material;
-        self
+    /* --------------------------- modify transformations --------------------------- */
+
+    pub fn translate_x(&mut self, x: f64) {
+        self.transformations_list[0] = x;
+        self.update_transform();
     }
+
+    pub fn translate_y(&mut self, y: f64) {
+        self.transformations_list[1] = y;
+        self.update_transform();
+    }
+
+    pub fn translate_z(&mut self, z: f64) {
+        self.transformations_list[2] = z;
+        self.update_transform();
+    }
+
+    pub fn scale_x(&mut self, x: f64) {
+        self.transformations_list[3] = x;
+        self.update_transform();
+    }
+
+    pub fn scale_y(&mut self, y: f64) {
+        self.transformations_list[4] = y;
+        self.update_transform();
+    }
+
+    pub fn scale_z(&mut self, z: f64) {
+        self.transformations_list[5] = z;
+        self.update_transform();
+    }
+
+    pub fn rotate_x(&mut self, x: f64) {
+        self.transformations_list[6] = x;
+        self.update_transform();
+    }
+
+    pub fn rotate_y(&mut self, y: f64) {
+        self.transformations_list[7] = y;
+        self.update_transform();
+    }
+
+    pub fn rotate_z(&mut self, z: f64) {
+        self.transformations_list[8] = z;
+        self.update_transform();
+    }
+
+    pub fn shear_xy(&mut self, xy: f64) {
+        self.transformations_list[9] = xy;
+        self.update_transform();
+    }
+
+    pub fn shear_xz(&mut self, xz: f64) {
+        self.transformations_list[10] = xz;
+        self.update_transform();
+    }
+
+    pub fn shear_yx(&mut self, yx: f64) {
+        self.transformations_list[11] = yx;
+        self.update_transform();
+    }
+
+    pub fn shear_yz(&mut self, yz: f64) {
+        self.transformations_list[12] = yz;
+        self.update_transform();
+    }
+
+    pub fn shear_zx(&mut self, zx: f64) {
+        self.transformations_list[13] = zx;
+        self.update_transform();
+    }
+
+    pub fn shear_zy(&mut self, zy: f64) {
+        self.transformations_list[14] = zy;
+        self.update_transform();
+    }
+
+    /* --------------------------- access transformations --------------------------- */
+
+    pub fn get_translate_x(&self) -> f64 {
+        self.transformations_list[0]
+    }
+
+    pub fn get_translate_y(&self) -> f64 {
+        self.transformations_list[1]
+    }
+
+    pub fn get_translate_z(&self) -> f64 {
+        self.transformations_list[2]
+    }
+
+    pub fn get_scale_x(&self) -> f64 {
+        self.transformations_list[3]
+    }
+
+    pub fn get_scale_y(&self) -> f64 {
+        self.transformations_list[4]
+    }
+
+    pub fn get_scale_z(&self) -> f64 {
+        self.transformations_list[5]
+    }
+
+    pub fn get_rotate_x(&self) -> f64 {
+        self.transformations_list[6]
+    }
+
+    pub fn get_rotate_y(&self) -> f64 {
+        self.transformations_list[7]
+    }
+
+    pub fn get_rotate_z(&self) -> f64 {
+        self.transformations_list[8]
+    }
+
+    pub fn get_shear_xy(&self) -> f64 {
+        self.transformations_list[9]
+    }
+
+    pub fn get_shear_xz(&self) -> f64 {
+        self.transformations_list[10]
+    }
+
+    pub fn get_shear_yx(&self) -> f64 {
+        self.transformations_list[11]
+    }
+
+    pub fn get_shear_yz(&self) -> f64 {
+        self.transformations_list[12]
+    }
+
+    pub fn get_shear_zx(&self) -> f64 {
+        self.transformations_list[13]
+    }
+
+    pub fn get_shear_zy(&self) -> f64 {
+        self.transformations_list[14]
+    }
+
+    /* --------------------------- get material attributes --------------------------- */
 
     pub fn get_material(&self) -> Material {
         self.material
-    }
-
-    pub fn set_color(&mut self, color: Color) -> &mut Self {
-        self.material.set_color(color);
-        self
     }
 
     pub fn get_color(&self) -> Color {
@@ -83,54 +254,24 @@ impl Object {
         self.material.get_ambient()
     }
 
-    pub fn set_ambient(&mut self, ambient: f64) -> &mut Self {
-        self.material.set_ambient(ambient);
-        self
-    }
-
     pub fn get_diffuse(&self) -> f64 {
         self.material.get_diffuse()
-    }
-
-    pub fn set_diffuse(&mut self, diffuse: f64) -> &mut Self {
-        self.material.set_diffuse(diffuse);
-        self
     }
 
     pub fn get_specular(&self) -> f64 {
         self.material.get_specular()
     }
 
-    pub fn set_specular(&mut self, specular: f64) -> &mut Self {
-        self.material.set_specular(specular);
-        self
-    }
-
     pub fn get_shininess(&self) -> f64 {
         self.material.get_shininess()
-    }
-
-    pub fn set_shininess(&mut self, shininess: f64) -> &mut Self {
-        self.material.set_shininess(shininess);
-        self
     }
 
     pub fn get_pattern(&self) -> Pattern {
         self.material.get_pattern()
     }
 
-    pub fn set_pattern(&mut self, pattern: Pattern) -> &mut Self {
-        self.material.set_pattern(pattern);
-        self
-    }
-
     pub fn get_pattern_transform(&self) -> Matrix4 {
         self.material.get_pattern_transform()
-    }
-
-    pub fn set_pattern_transform(&mut self, transform: Matrix4) -> &mut Self {
-        self.material.set_pattern_transform(transform);
-        self
     }
 
     pub fn get_pattern_inverse_transform(&self) -> Matrix4 {
@@ -141,13 +282,63 @@ impl Object {
         self.material.get_reflective()
     }
 
-    pub fn set_reflective(&mut self, reflective: f64) -> &mut Self {
-        self.material.set_reflective(reflective);
+    pub fn get_transparency(&self) -> f64 {
+        self.material.get_transparency()
+    }
+
+    pub fn get_refractive_index(&self) -> f64 {
+        self.material.get_refractive_index()
+    }
+
+    pub fn casts_shadow(&self) -> bool {
+        self.material.casts_shadow()
+    }
+
+    /* --------------------------- set material attributes --------------------------- */
+
+    pub fn set_material(&mut self, material: Material) -> &mut Self {
+        self.material = material;
         self
     }
 
-    pub fn get_transparency(&self) -> f64 {
-        self.material.get_transparency()
+    pub fn set_color(&mut self, color: Color) -> &mut Self {
+        self.material.set_color(color);
+        self
+    }
+
+    pub fn set_ambient(&mut self, ambient: f64) -> &mut Self {
+        self.material.set_ambient(ambient);
+        self
+    }
+
+    pub fn set_diffuse(&mut self, diffuse: f64) -> &mut Self {
+        self.material.set_diffuse(diffuse);
+        self
+    }
+
+    pub fn set_specular(&mut self, specular: f64) -> &mut Self {
+        self.material.set_specular(specular);
+        self
+    }
+
+    pub fn set_shininess(&mut self, shininess: f64) -> &mut Self {
+        self.material.set_shininess(shininess);
+        self
+    }
+
+    pub fn set_pattern(&mut self, pattern: Pattern) -> &mut Self {
+        self.material.set_pattern(pattern);
+        self
+    }
+
+    pub fn set_pattern_transform(&mut self, transform: Matrix4) -> &mut Self {
+        self.material.set_pattern_transform(transform);
+        self
+    }
+
+    pub fn set_reflective(&mut self, reflective: f64) -> &mut Self {
+        self.material.set_reflective(reflective);
+        self
     }
 
     pub fn set_transparency(&mut self, transparency: f64) -> &mut Self {
@@ -155,23 +346,17 @@ impl Object {
         self
     }
 
-    pub fn get_refractive_index(&self) -> f64 {
-        self.material.get_refractive_index()
-    }
-
     pub fn set_refractive_index(&mut self, index: f64) -> &mut Self {
         self.material.set_refractive_index(index);
         self
-    }
-
-    pub fn casts_shadow(&self) -> bool {
-        self.material.casts_shadow()
     }
 
     pub fn set_casts_shadow(&mut self, cs: bool) -> &mut Self {
         self.material.set_casts_shadow(cs);
         self
     }
+
+    /* --------------------------- ray tracing calculations --------------------------- */
 
     pub fn normal_at(&self, pt: Tuple) -> Tuple {
         let local_point = self.inverse_transform * pt;

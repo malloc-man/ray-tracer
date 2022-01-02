@@ -190,102 +190,31 @@ impl epi::App for RayTracer {
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=1.0).text("Ambient"));
-                    } else {
-                        let mut ambient = self.active_object().get_ambient();
-                        let orig = ambient;
-                        ui.add(egui::Slider::new(&mut ambient, 0.0..=1.0).text("Ambient"));
-                        if ambient != orig {
-                            self.active_object().set_ambient(ambient);
-                            self.prep_update();
-                        };
-                    };
+                    self.material_attribute_slider(0, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=1.0).text("Diffuse"));
-                    } else {
-                        let mut diffuse = self.active_object().get_diffuse();
-                        let orig = diffuse;
-                        ui.add(egui::Slider::new(&mut diffuse, 0.0..=1.0).text("Diffuse"));
-                        if diffuse != orig {
-                            self.active_object().set_diffuse(diffuse);
-                            self.prep_update();
-                        }
-                    };
+                    self.material_attribute_slider(1, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=1.0).text("Specular"));
-                    } else {
-                        let mut specular = self.world.objects()[index].get_specular();
-                        let orig = specular;
-                        ui.add(egui::Slider::new(&mut specular, 0.0..=1.0).text("Specular"));
-                        if specular != orig {
-                            self.active_object().set_specular(specular);
-                            self.prep_update();
-                        }
-                    }
+                    self.material_attribute_slider(2, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=400.0).text("Shininess"));
-                    } else {
-                        let mut shininess = self.active_object().get_shininess();
-                        let orig = shininess;
-                        ui.add(egui::Slider::new(&mut shininess, 0.0..=400.0).text("Shininess"));
-                        self.world.objects()[index].set_shininess(shininess);
-                        if shininess != orig {
-                            self.active_object().set_shininess(shininess);
-                            self.prep_update();
-                        }
-                    }
+                    self.material_attribute_slider(3, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=1.0).text("Reflective"));
-                    } else {
-                        let mut reflective = self.active_object().get_reflective();
-                        let orig = reflective;
-                        ui.add(egui::Slider::new(&mut reflective, 0.0..=1.0).text("Reflective"));
-                        if reflective != orig {
-                            self.active_object().set_reflective(reflective);
-                            self.prep_update();
-                        }
-                    }
+                    self.material_attribute_slider(4, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=5.0).text("Refractive Index"));
-                    } else {
-                        let mut refractive_index = self.active_object().get_refractive_index();
-                        let orig = refractive_index;
-                        ui.add(egui::Slider::new(&mut refractive_index, 0.0..=5.0).text("Refractive Index"));
-                        if refractive_index != orig {
-                            self.active_object().set_refractive_index(refractive_index);
-                            self.prep_update();
-                        }
-                    }
+                    self.material_attribute_slider(5, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.add(egui::Slider::new(&mut 0.0, 0.0..=1.0).text("Transparency"));
-                    } else {
-                        let mut transparency = self.active_object().get_transparency();
-                        let orig = transparency;
-                        ui.add(egui::Slider::new(&mut transparency, 0.0..=1.0).text("Transparency"));
-                        if transparency != orig {
-                            self.active_object().set_transparency(transparency);
-                            self.prep_update();
-                        }
-                    }
+                    self.material_attribute_slider(6, ui, index != usize::MAX);
                 });
 
                 ui.horizontal(|ui| {
@@ -303,6 +232,58 @@ impl epi::App for RayTracer {
                     }
                 });
             });
+
+            ui.group(|ui| {
+                ui.set_enabled(self.active_object.is_some());
+                let index = self.active_object.unwrap_or(usize::MAX);
+
+                ui.horizontal(|ui| {
+                    ui.group(|ui| {
+                        self.transformation_drag_updater(0, ui, index != usize::MAX);
+                        self.transformation_drag_updater(1, ui, index != usize::MAX);
+                        self.transformation_drag_updater(2, ui, index != usize::MAX);
+                    });
+                    ui.label("Translation");
+                });
+
+                ui.horizontal(|ui| {
+                    ui.group(|ui| {
+                        self.transformation_drag_updater(3, ui, index != usize::MAX);
+                        self.transformation_drag_updater(4, ui, index != usize::MAX);
+                        self.transformation_drag_updater(5, ui, index != usize::MAX);
+                    });
+                    ui.label("Scaling");
+                });
+
+                ui.horizontal(|ui| {
+                    ui.group(|ui| {
+                        self.transformation_drag_updater(6, ui, index != usize::MAX);
+                        self.transformation_drag_updater(7, ui, index != usize::MAX);
+                        self.transformation_drag_updater(8, ui, index != usize::MAX);
+                    });
+                    ui.label("Rotation");
+                });
+
+                ui.horizontal(|ui| {
+                    ui.group(|ui| {
+                        ui.vertical(|ui| {
+                            ui.horizontal(|ui| {
+                                self.transformation_drag_updater(9, ui, index != usize::MAX);
+                                self.transformation_drag_updater(10, ui, index != usize::MAX);
+                                self.transformation_drag_updater(11, ui, index != usize::MAX);
+                            });
+
+                            ui.horizontal(|ui| {
+                                self.transformation_drag_updater(12, ui, index != usize::MAX);
+                                self.transformation_drag_updater(13, ui, index != usize::MAX);
+                                self.transformation_drag_updater(14, ui, index != usize::MAX);
+                            });
+                        });
+                    });
+                    ui.label("Shearing");
+                });
+            });
+
             if ui.button("Render").clicked() {
                 let canvas = self.camera.parallel_render(&self.world);
                 canvas.canvas_to_png("image.png");
@@ -312,7 +293,7 @@ impl epi::App for RayTracer {
         egui::SidePanel::right("object_list").show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let mut idx = 0;
-                for item in self.world.objects() {
+                for item in self.world.read_objects() {
                     ui.selectable_value(&mut self.active_object, Some(idx), (format!("{}", item.shape)));
                     idx += 1;
                 }
@@ -364,6 +345,10 @@ impl RayTracer {
         &mut self.world.objects()[self.active_object.unwrap()]
     }
 
+    fn read_active_object(&self) -> &Object {
+        &self.world.read_objects()[self.active_object.unwrap()]
+    }
+
     fn add_new_shape(&mut self, shape: Shape) {
         let new = match shape {
             Shape::Cone {min, max, closed} => cones::new(min, max, closed),
@@ -375,5 +360,116 @@ impl RayTracer {
         self.world.add_object(new);
         self.active_object = Some(self.world.objects().len()-1);
         self.prep_update();
+    }
+
+    fn material_attribute_slider(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
+        if enabled {
+            let (mut orig, name, rng) = self.get_scalar_attribute_from_index(index);
+            let save = orig;
+            ui.add(egui::Slider::new(&mut orig, rng).text(name));
+            if orig != save {
+                self.set_scalar_attribute_from_index(index, orig);
+                self.prep_update();
+            }
+        } else {
+            let (name, rng) = self.scalar_attribute_spec(index);
+            ui.add(egui::Slider::new(&mut 0.0, rng).text(name));
+        }
+    }
+
+    fn get_scalar_attribute_from_index(&self, index: u8) -> (f64, &str, std::ops::RangeInclusive<f64>) {
+        let (name, rng) = self.scalar_attribute_spec(index);
+        match index {
+            0 => (self.read_active_object().get_ambient(), name, rng),
+            1 => (self.read_active_object().get_diffuse(), name, rng),
+            2 => (self.read_active_object().get_specular(), name, rng),
+            3 => (self.read_active_object().get_shininess(), name, rng),
+            4 => (self.read_active_object().get_reflective(), name, rng),
+            5 => (self.read_active_object().get_refractive_index(), name, rng),
+            6 => (self.read_active_object().get_transparency(), name, rng),
+            _ => (0.0, "", 0.0..=0.0)
+        }
+    }
+
+    fn scalar_attribute_spec(&self, index: u8) -> (&str, std::ops::RangeInclusive<f64>) {
+        match index {
+            0 => ("Ambient", 0.0..=1.0),
+            1 => ("Diffuse", 0.0..=1.0),
+            2 => ("Specular", 0.0..=1.0),
+            3 => ("Shininess", 0.0..=400.0),
+            4 => ("Reflective", 0.0..=1.0),
+            5 => ("Refractive Index", 0.0..=5.0),
+            6 => ("Transparency", 0.0..=1.0),
+            _ => ("", 0.0..=0.0)
+        }
+    }
+
+    fn set_scalar_attribute_from_index(&mut self, index: u8, value: f64) {
+        match index {
+            0 => self.active_object().set_ambient(value),
+            1 => self.active_object().set_diffuse(value),
+            2 => self.active_object().set_specular(value),
+            3 => self.active_object().set_shininess(value),
+            4 => self.active_object().set_reflective(value),
+            5 => self.active_object().set_refractive_index(value),
+            6 => self.active_object().set_transparency(value),
+            _ => return
+        };
+    }
+
+    fn transformation_drag_updater(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
+        if enabled {
+            let mut orig = self.get_transform_from_index(index);
+            let save = orig;
+            ui.add(egui::DragValue::new(&mut orig).speed(0.1));
+            if orig != save {
+                self.set_transform_from_index(index, orig);
+                self.prep_update();
+            }
+        } else {
+            ui.add(egui::DragValue::new(&mut 0.0).speed(0.1));
+        }
+    }
+
+    fn get_transform_from_index(&self, index: u8) -> f64 {
+        match index {
+            0 => self.read_active_object().get_translate_x(),
+            1 => self.read_active_object().get_translate_y(),
+            2 => self.read_active_object().get_translate_z(),
+            3 => self.read_active_object().get_scale_x(),
+            4 => self.read_active_object().get_scale_y(),
+            5 => self.read_active_object().get_scale_z(),
+            6 => self.read_active_object().get_rotate_x(),
+            7 => self.read_active_object().get_rotate_y(),
+            8 => self.read_active_object().get_rotate_z(),
+            9 => self.read_active_object().get_shear_xy(),
+            10 => self.read_active_object().get_shear_xz(),
+            11 => self.read_active_object().get_shear_yx(),
+            12 => self.read_active_object().get_shear_yz(),
+            13 => self.read_active_object().get_shear_zx(),
+            14 => self.read_active_object().get_shear_zy(),
+            _ => 0.0
+        }
+    }
+
+    fn set_transform_from_index(&mut self, index: u8, value: f64) {
+        match index {
+            0 => self.active_object().translate_x(value),
+            1 => self.active_object().translate_y(value),
+            2 => self.active_object().translate_z(value),
+            3 => self.active_object().scale_x(value),
+            4 => self.active_object().scale_y(value),
+            5 => self.active_object().scale_z(value),
+            6 => self.active_object().rotate_x(value),
+            7 => self.active_object().rotate_y(value),
+            8 => self.active_object().rotate_z(value),
+            9 => self.active_object().shear_xy(value),
+            10 => self.active_object().shear_xz(value),
+            11 => self.active_object().shear_yx(value),
+            12 => self.active_object().shear_yz(value),
+            13 => self.active_object().shear_zx(value),
+            14 => self.active_object().shear_zy(value),
+            _ => return,
+        };
     }
 }
