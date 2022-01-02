@@ -5,24 +5,71 @@ pub struct Pattern {
     pattern_type: PatternType,
     transform: Matrix4,
     inverse_transform: Matrix4,
+    color1: Color,
+    color2: Color,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PatternType {
-    Solid {a: Color},
-    Stripe {a: Color, b: Color},
-    Gradient {a: Color, b: Color},
-    Ring {a: Color, b: Color},
-    Checker3d {a: Color, b: Color},
+    Solid,
+    Stripe,
+    Gradient,
+    Ring,
+    Checker3d,
     Test,
 }
 
+impl std::fmt::Display for Pattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self.pattern_type {
+            PatternType::Solid => write!(f, "Solid Color"),
+            PatternType::Stripe => write!(f, "Stripe"),
+            PatternType::Gradient => write!(f, "Gradient"),
+            PatternType::Ring => write!(f, "Ring"),
+            PatternType::Checker3d => write!(f, "Checkers"),
+            _ => write!(f, "Test"),
+        }
+    }
+}
+
 impl Pattern {
-    pub fn new(pattern_type: PatternType, transform: Matrix4) -> Self {
+    pub fn new(pattern_type: PatternType, color1: Color, color2: Color) -> Self {
         Self {
             pattern_type,
-            transform,
-            inverse_transform: transform.invert(),
+            transform: Matrix4::identity(),
+            inverse_transform: Matrix4::identity(),
+            color1,
+            color2,
+        }
+    }
+
+    pub fn duplicate_different_type(&self, new_type: PatternType) -> Self {
+        Self {
+            pattern_type: new_type,
+            transform: self.transform,
+            inverse_transform: self.inverse_transform,
+            color1: self.color1,
+            color2: self.color2,
+        }
+    }
+
+    pub fn duplicate_change_color_1(&self, color: Color) -> Self {
+        Self {
+            pattern_type: self.pattern_type,
+            transform: self.transform,
+            inverse_transform: self.inverse_transform,
+            color1: color,
+            color2: self.color2,
+        }
+    }
+
+    pub fn duplicate_change_color_2(&self, color: Color) -> Self {
+        Self {
+            pattern_type: self.pattern_type,
+            transform: self.transform,
+            inverse_transform: self.inverse_transform,
+            color1: self.color1,
+            color2: color,
         }
     }
 
@@ -46,38 +93,52 @@ impl Pattern {
 
     pub fn pattern_at(&self, point: Tuple) -> Color {
         match self.pattern_type {
-            PatternType::Stripe {a, b} => stripe_at(a, b, point),
-            PatternType::Gradient {a, b} => gradient_at(a, b, point),
-            PatternType::Ring {a, b} => ring_at(a, b, point),
-            PatternType::Checker3d {a, b} => checker_3d_at(a, b, point),
-            PatternType::Solid{a} => a,
+            PatternType::Stripe => stripe_at(self.color1, self.color2, point),
+            PatternType::Gradient => gradient_at(self.color1, self.color2, point),
+            PatternType::Ring => ring_at(self.color1, self.color2, point),
+            PatternType::Checker3d => checker_3d_at(self.color1, self.color2, point),
+            PatternType::Solid => black(),
             PatternType::Test => color(point.x, point.y, point.z),
         }
     }
+
+    pub fn colors (&self) -> [Color; 2] {
+        [self.color1, self.color2]
+    }
+
+    pub fn set_color_1(&mut self, color: Color) -> &mut Self {
+        self.color1 = color;
+        self
+    }
+
+    pub fn set_color_2(&mut self, color: Color) -> &mut Self {
+        self.color2 = color;
+        self
+    }
 }
 
-pub fn solid(a: Color) -> Pattern {
-    Pattern::new(PatternType::Solid{a}, Matrix4::identity())
+pub fn solid() -> Pattern {
+    Pattern::new(PatternType::Solid, white(), black())
 }
 
 pub fn stripe(a: Color, b: Color) -> Pattern {
-    Pattern::new(PatternType::Stripe{a,b}, Matrix4::identity())
+    Pattern::new(PatternType::Stripe, a,b)
 }
 
 pub fn gradient(a: Color, b: Color) -> Pattern {
-    Pattern::new(PatternType::Gradient{a,b}, Matrix4::identity())
+    Pattern::new(PatternType::Gradient, a,b)
 }
 
 pub fn ring(a: Color, b: Color) -> Pattern {
-    Pattern::new(PatternType::Ring {a, b}, Matrix4::identity())
+    Pattern::new(PatternType::Ring,a, b)
 }
 
 pub fn checker_3d(a: Color, b: Color) -> Pattern {
-    Pattern::new(PatternType::Checker3d {a, b}, Matrix4::identity())
+    Pattern::new(PatternType::Checker3d, a, b)
 }
 
 pub fn test_pattern() -> Pattern {
-    Pattern::new(PatternType::Test, Matrix4::identity())
+    Pattern::new(PatternType::Test, black(), black())
 }
 
 fn stripe_at(a: Color, b: Color, point: Tuple) -> Color {

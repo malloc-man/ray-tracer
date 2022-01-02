@@ -27,6 +27,19 @@ impl Camera {
         }.initialize()
     }
 
+    pub fn new_preview(camera: &Camera) -> Self {
+        Self {
+            hsize: 200,
+            vsize: 200,
+            field_of_view: camera.field_of_view,
+            transform: camera.transform,
+            inverse_transform: camera.inverse_transform,
+            pixel_size: 0.0,
+            half_width: 0.0,
+            half_height: 0.0,
+        }.initialize()
+    }
+
     fn initialize(mut self) -> Self {
         let half_view = (self.field_of_view / 2.0).tan();
         let aspect = self.hsize as f64 / self.vsize as f64;
@@ -41,9 +54,10 @@ impl Camera {
         self
     }
 
-    pub fn set_transform(&mut self, transform: Matrix4) {
+    pub fn set_transform(&mut self, transform: Matrix4) -> &Self {
         self.transform = transform;
         self.inverse_transform = transform.invert();
+        self
     }
 
     fn ray_for_pixel(&self, x: usize, y: usize) -> Ray {
@@ -97,6 +111,27 @@ impl Camera {
                     print!("\rRender progress: {:.1}%",
                            pixels_rendered.load(Ordering::Relaxed) as f64 * 100.0 /
                                ((self.hsize * self.vsize) as f64));
+                }
+            });
+        image
+    }
+
+    pub fn preview_parallel_render(&self, world: &World) -> Canvas {
+        const BAND_SIZE: usize = 10;
+        let mut image = Canvas::new(self.hsize, self.vsize);
+        image
+            .pixels()
+            .par_chunks_mut(self.hsize * BAND_SIZE)
+            .enumerate()
+            .for_each(|(i, band)| {
+                for row in 0..BAND_SIZE {
+                    for col in 0..self.hsize {
+                        let ray = self.ray_for_pixel(col, row + i * BAND_SIZE);
+                        if (row * self.hsize) + col < band.len() {
+                            band[(row * self.hsize) + col] =
+                                world.color_at(ray, 2);
+                        }
+                    }
                 }
             });
         image

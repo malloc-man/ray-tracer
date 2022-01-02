@@ -9,7 +9,7 @@ pub fn glass_sphere() -> Object {
     sphere.set_transparency(0.9);
     sphere.set_reflective(0.9);
     sphere.set_refractive_index(1.5);
-    sphere.set_pattern(solid(black()));
+    sphere.set_color(black());
     sphere.set_casts_shadow(false);
     sphere.set_ambient(0.0);
     sphere.set_diffuse(0.0);

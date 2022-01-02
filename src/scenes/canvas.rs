@@ -90,6 +90,18 @@ impl Canvas {
             Ok(()) => println!("\nRender complete: image saved as {}", path),
         };
     }
+
+    pub fn canvas_to_buffer(&self) -> RgbaImage {
+        let mut buffer: RgbaImage = ImageBuffer::new(self.width as u32, self.height as u32);
+        for (x, y, pixel) in buffer.enumerate_pixels_mut() {
+            let clr = self.pixel_at(x as usize, y as usize);
+            *pixel = Rgba([(clr.get_red() * 255.999) as u8,
+                (clr.get_green() * 255.999) as u8,
+                (clr.get_blue() * 255.999) as u8,
+                255.999 as u8]);
+        }
+        buffer
+    }
 }
 
 #[cfg(test)]

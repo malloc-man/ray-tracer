@@ -1,3 +1,4 @@
+use std::fmt::Formatter;
 use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -16,6 +17,18 @@ pub enum Shape {
     Cube,
     Cylinder {min: f64, max: f64, closed: bool},
     Cone {min: f64, max: f64, closed: bool},
+}
+
+impl std::fmt::Display for Shape {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Shape::Sphere => write!(f, "Sphere"),
+            Shape::Plane => write!(f, "Plane"),
+            Shape::Cube => write!(f, "Cube"),
+            Shape::Cylinder {min: _, max: _, closed: _} => write!(f, "Cylinder"),
+            Shape::Cone {min: _, max: _, closed: _} => write!(f, "Cone"),
+        }
+    }
 }
 
 impl Object {
@@ -185,6 +198,9 @@ impl Object {
     }
 
     pub fn pattern_at_object(&self, point: Tuple) -> Color {
+        if self.get_pattern().get_pattern_type() == PatternType::Solid {
+            return self.get_color();
+        }
         let local_point = self.inverse_transform * point;
         let pattern_space_point = self.get_pattern_inverse_transform() * local_point;
         self.get_pattern().pattern_at(pattern_space_point)

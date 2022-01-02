@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 rayon = "1.5"
 image = "0.23"
+eframe = "0.16.0"

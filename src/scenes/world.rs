@@ -18,7 +18,7 @@ impl World {
     pub fn new_default() -> Self {
         let mut sphere1 = spheres::new();
         let mut material = Material::new();
-        material.set_pattern(solid(color(0.8, 1.0, 0.6)))
+        material.set_color(color(0.8, 1.0, 0.6))
             .set_ambient(0.1)
             .set_diffuse(0.7)
             .set_specular(0.2)
@@ -41,6 +41,10 @@ impl World {
 
     pub fn add_object(&mut self, object: Object) {
         self.objects.push(object)
+    }
+
+    pub fn objects(&mut self) -> &mut Vec<Object> {
+        &mut self.objects
     }
 
     fn intersect_world(&self, ray: Ray) -> Vec<Intersection> {
@@ -558,7 +562,7 @@ mod tests {
         w.add_object(floor);
 
         let mut ball = spheres::new();
-        ball.set_pattern(solid(color(1.0, 0.0, 0.0)));
+        ball.set_color(color(1.0, 0.0, 0.0));
         ball.set_ambient(0.5);
         ball.set_transform(translation(0.0, -3.5, -0.5));
         w.add_object(ball);

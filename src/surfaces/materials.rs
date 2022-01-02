@@ -22,7 +22,7 @@ impl Material {
             diffuse: 0.9,
             specular: 0.9,
             shininess: 200.0,
-            pattern: solid(white()),
+            pattern: solid(),
             reflective: 0.0,
             transparency: 0.0,
             refractive_index: 1.0,
@@ -36,7 +36,6 @@ impl Material {
 
     pub fn set_color(&mut self, color: Color) -> &mut Self {
         self.color = color;
-        self.pattern = solid(color);
         self
     }
 
