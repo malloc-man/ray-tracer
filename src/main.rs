@@ -18,7 +18,6 @@ mod prelude {
     pub use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI, SQRT_2};
 }
 
-use crate::prelude::*;
 use eframe::*;
 
 #[cfg(not(target_arch = "wasm32"))]

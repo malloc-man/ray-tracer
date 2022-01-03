@@ -25,8 +25,8 @@ impl Camera {
             transform: Matrix4::identity(),
             inverse_transform: Matrix4::identity(),
             transform_components: [
-                point(0.0, 1.5, -5.0),
-                point(0.0, 1.5, 0.0),
+                point(0.0, 0.0, 0.0),
+                point(0.0, 0.0, -1.0),
                 vector(0.0, 1.0, 0.0)
             ],
             pixel_size: 0.0,
@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_ray_for_pixel_center() {
-        let c = Camera::new(201, 101, FRAC_PI_2);
+        let mut c = Camera::new(201, 101, FRAC_PI_2);
         let r = c.ray_for_pixel(100, 50);
 
         assert_eq!(r.get_origin(), origin());

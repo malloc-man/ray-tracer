@@ -1,9 +1,5 @@
-use std::any::Any;
-use std::fmt::Debug;
 use eframe::{egui, epi};
-use image::RgbImage;
 use crate::prelude::*;
-use crate::Shape::Sphere;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::sync::mpsc::*;
@@ -26,7 +22,7 @@ impl Default for RayTracer {
         let (tx, rx) = std::sync::mpsc::channel();
         let (tx2, rx2) = std::sync::mpsc::channel();
 
-        let new = Self {
+        let mut new = Self {
             world: World::new_default(),
             camera: Camera::new(1000, 800, FRAC_PI_2),
             active_object: None,
@@ -49,6 +45,10 @@ impl Default for RayTracer {
                 }
             }
         });
+
+        new.camera.set_from(point(0.0, 1.5, -5.0));
+        new.camera.set_to(point(0.0, 1.5, 0.0));
+        new.camera.set_up(vector(0.0, 1.0, 0.0));
         new
     }
 }
@@ -655,8 +655,8 @@ impl RayTracer {
 
         if new_min != min {
             let new_shape = match shape {
-                Shape::Cone {min, max, closed} => Shape::Cone {min: new_min, max, closed},
-                Shape::Cylinder {min, max, closed} => Shape::Cylinder {min: new_min, max, closed},
+                Shape::Cone {min: _, max, closed} => Shape::Cone {min: new_min, max, closed},
+                Shape::Cylinder {min: _, max, closed} => Shape::Cylinder {min: new_min, max, closed},
                 _ => self.active_object().shape,
             };
             self.active_object().shape = new_shape;
@@ -665,8 +665,8 @@ impl RayTracer {
 
         if new_max != max {
             let new_shape = match shape {
-                Shape::Cone {min, max, closed} => Shape::Cone {min, max: new_max, closed},
-                Shape::Cylinder {min, max, closed} => Shape::Cylinder {min, max: new_max, closed},
+                Shape::Cone {min, max: _, closed} => Shape::Cone {min, max: new_max, closed},
+                Shape::Cylinder {min, max: _, closed} => Shape::Cylinder {min, max: new_max, closed},
                 _ => self.active_object().shape,
             };
             self.active_object().shape = new_shape;
@@ -675,8 +675,8 @@ impl RayTracer {
 
         if new_closed != closed {
             let new_shape = match shape {
-                Shape::Cone {min, max, closed} => Shape::Cone {min, max, closed: new_closed},
-                Shape::Cylinder {min, max, closed} => Shape::Cylinder {min, max, closed: new_closed},
+                Shape::Cone {min, max, closed: _} => Shape::Cone {min, max, closed: new_closed},
+                Shape::Cylinder {min, max, closed: _} => Shape::Cylinder {min, max, closed: new_closed},
                 _ => self.active_object().shape,
             };
             self.active_object().shape = new_shape;
