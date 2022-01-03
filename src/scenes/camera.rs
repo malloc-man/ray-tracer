@@ -9,6 +9,7 @@ pub struct Camera {
     vsize: usize,
     field_of_view: f64,
     transform: Matrix4,
+    transform_components: [Tuple; 3],
     inverse_transform: Matrix4,
     pixel_size: f64,
     half_width: f64,
@@ -23,11 +24,17 @@ impl Camera {
             field_of_view,
             transform: Matrix4::identity(),
             inverse_transform: Matrix4::identity(),
+            transform_components: [
+                point(0.0, 1.5, -5.0),
+                point(0.0, 1.5, 0.0),
+                vector(0.0, 1.0, 0.0)
+            ],
             pixel_size: 0.0,
             half_width: 0.0,
             half_height: 0.0,
         };
         new.initialize();
+        new.update_transformations();
         new
     }
 
@@ -39,11 +46,13 @@ impl Camera {
             field_of_view: camera.field_of_view,
             transform: camera.transform,
             inverse_transform: camera.inverse_transform,
+            transform_components: camera.transform_components,
             pixel_size: 0.0,
             half_width: 0.0,
             half_height: 0.0,
         };
         new.initialize();
+        new.update_transformations();
         new
     }
 
@@ -99,6 +108,42 @@ impl Camera {
 
     pub fn get_transform(&mut self) -> Matrix4 {
         self.transform
+    }
+
+    pub fn get_from(&self) -> Tuple {
+        self.transform_components[0]
+    }
+
+    pub fn get_to(&self) -> Tuple {
+        self.transform_components[1]
+    }
+
+    pub fn get_up(&self) -> Tuple {
+        self.transform_components[2]
+    }
+
+    pub fn set_from(&mut self, from: Tuple) {
+        self.transform_components[0] = from;
+        self.update_transformations();
+    }
+
+    pub fn set_to(&mut self, to: Tuple) {
+        self.transform_components[1] = to;
+        self.update_transformations();
+    }
+
+    pub fn set_up(&mut self, up: Tuple) {
+        self.transform_components[2] = up;
+        self.update_transformations();
+    }
+
+    fn update_transformations(&mut self) {
+        let from = self.transform_components[0];
+        let to = self.transform_components[1];
+        let up = self.transform_components[2];
+
+        let transform = view_transform(from, to, up);
+        self.set_transform(transform);
     }
 
     fn ray_for_pixel(&self, x: usize, y: usize) -> Ray {

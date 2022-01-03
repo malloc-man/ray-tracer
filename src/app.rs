@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::Shape::Sphere;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::mpsc::*;
 use crate::egui::Align;
 
 pub struct RayTracer {
@@ -16,11 +17,16 @@ pub struct RayTracer {
     preview_up_to_date: bool,
     rendering: Arc<AtomicBool>,
     rendering_progress: Arc<AtomicUsize>,
+    preview_update_sender: Sender<(Camera, World)>,
+    image_receiver: Receiver<epi::Image>,
 }
 
 impl Default for RayTracer {
     fn default() -> Self {
-        Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx2, rx2) = std::sync::mpsc::channel();
+
+        let new = Self {
             world: World::new_default(),
             camera: Camera::new(1000, 800, FRAC_PI_2),
             active_object: None,
@@ -28,7 +34,22 @@ impl Default for RayTracer {
             preview_up_to_date: false,
             rendering: Arc::new(AtomicBool::new(false)),
             rendering_progress: Arc::new(AtomicUsize::new(0)),
-        }
+            preview_update_sender: tx,
+            image_receiver: rx2,
+        };
+
+        std::thread::spawn(move || {
+            loop {
+                if let Ok((camera, world)) = rx.try_recv() {
+                    let buffer = camera.preview_parallel_render(&world).canvas_to_buffer();
+                    let size = [buffer.width() as usize, buffer.height() as usize];
+                    let pixels = buffer.into_vec();
+                    let image = epi::Image::from_rgba_unmultiplied(size, &pixels);
+                    tx2.send(image);
+                }
+            }
+        });
+        new
     }
 }
 
@@ -43,13 +64,7 @@ impl epi::App for RayTracer {
         _frame: &epi::Frame,
         _storage: Option<&dyn epi::Storage>,
     ) {
-        self.camera.set_transform(
-            view_transform(
-                point(0.0, 1.5, -5.0),
-                point(0.0, 1.5, 0.0),
-                vector(0.0, 1.0, 0.0)
-            )
-        );
+
     }
 
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
@@ -156,6 +171,70 @@ impl epi::App for RayTracer {
                     }
                     ui.label("FOV");
                 });
+
+                ui.add_space(4.0);
+
+                ui.horizontal(|ui| {
+                    let mut from = self.camera.get_from();
+
+                    if ui.add(egui::DragValue::new(&mut from.x).speed(0.1)).changed() {
+                        self.camera.set_from(from);
+                        self.prep_update();
+                    }
+                    ui.label("x");
+                    if ui.add(egui::DragValue::new(&mut from.y).speed(0.1)).changed() {
+                        self.camera.set_from(from);
+                        self.prep_update();
+                    }
+                    ui.label("y");
+                    if ui.add(egui::DragValue::new(&mut from.z).speed(0.1)).changed() {
+                        self.camera.set_from(from);
+                        self.prep_update();
+                    }
+                    ui.label("z");
+                    ui.label("|   From");
+                });
+
+                ui.horizontal(|ui| {
+                    let mut to = self.camera.get_to();
+                    if ui.add(egui::DragValue::new(&mut to.x).speed(0.1)).changed() {
+                        self.camera.set_to(to);
+                        self.prep_update();
+                    }
+                    ui.label("x");
+                    if ui.add(egui::DragValue::new(&mut to.y).speed(0.1)).changed() {
+                        self.camera.set_to(to);
+                        self.prep_update();
+                    }
+                    ui.label("y");
+                    if ui.add(egui::DragValue::new(&mut to.z).speed(0.1)).changed() {
+                        self.camera.set_to(to);
+                        self.prep_update();
+                    }
+                    ui.label("z");
+                    ui.label("|   To");
+                });
+
+                ui.horizontal(|ui| {
+                    let mut up = self.camera.get_up();
+                    if ui.add(egui::DragValue::new(&mut up.x).speed(0.1)).changed() {
+                        self.camera.set_up(up);
+                        self.prep_update();
+                    }
+                    ui.label("x");
+                    if ui.add(egui::DragValue::new(&mut up.y).speed(0.1)).changed() {
+                        self.camera.set_up(up);
+                        self.prep_update();
+                    }
+                    ui.label("y");
+                    if ui.add(egui::DragValue::new(&mut up.z).speed(0.1)).changed() {
+                        self.camera.set_up(up);
+                        self.prep_update();
+                    }
+                    ui.label("z");
+                    ui.label("|   Up");
+                });
+
             });
 
             ui.add(egui::Separator::default());
@@ -296,10 +375,7 @@ impl epi::App for RayTracer {
                         ui.checkbox(&mut false, "Casts shadow");
                     } else {
                         let mut casts_shadow = self.active_object().casts_shadow();
-                        let orig = casts_shadow;
-                        ui.checkbox(&mut casts_shadow, "Casts shadow");
-                        self.world.objects()[index].set_casts_shadow(casts_shadow);
-                        if casts_shadow != orig {
+                        if ui.checkbox(&mut casts_shadow, "Casts shadow").changed() {
                             self.active_object().set_casts_shadow(casts_shadow);
                             self.prep_update();
                         }
@@ -387,9 +463,11 @@ impl epi::App for RayTracer {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some((size, texture)) = self.last_preview {
-                ui.image(texture, size);
-            }
+            egui::ScrollArea::new([true, true]).show(ui, |ui| {
+                if let Some((size, texture)) = self.last_preview {
+                    ui.image(texture, size);
+                }
+            });
             egui::warn_if_debug_build(ui);
         });
     }
@@ -409,17 +487,17 @@ impl RayTracer {
 
     fn update_preview(&mut self, frame: &epi::Frame) {
         if !self.preview_up_to_date {
-            let preview_camera = Camera::new_preview(&self.camera);
-            let buffer = preview_camera.preview_parallel_render(&self.world).canvas_to_buffer();
-
-            let size = [buffer.width() as usize, buffer.height() as usize];
-            let pixels = buffer.into_vec();
-            let image = epi::Image::from_rgba_unmultiplied(size, &pixels);
-
-            let texture = frame.alloc_texture(image);
-            let size = egui::Vec2::new(size[0] as f32, size[1] as f32);
-            self.last_preview = Some((size, texture));
             self.preview_up_to_date = true;
+            let preview_camera = Camera::new_preview(&self.camera);
+            let preview_world = self.world.clone();
+            self.preview_update_sender.send((preview_camera, preview_world));
+        }
+        if let Ok(image) = self.image_receiver.try_recv() {
+            let x = image.size[0] as f32;
+            let y = image.size[1] as f32;
+            let texture = frame.alloc_texture(image);
+            let size = egui::Vec2::new(x, y);
+            self.last_preview = Some((size, texture));
         }
     }
 
@@ -451,9 +529,7 @@ impl RayTracer {
     fn material_attribute_slider(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
         if enabled {
             let (mut orig, name, rng) = self.get_scalar_attribute_from_index(index);
-            let save = orig;
-            ui.add(egui::Slider::new(&mut orig, rng).text(name));
-            if orig != save {
+            if ui.add(egui::Slider::new(&mut orig, rng).text(name)).changed() {
                 self.set_scalar_attribute_from_index(index, orig);
                 self.prep_update();
             }
@@ -506,9 +582,7 @@ impl RayTracer {
     fn transformation_drag_updater(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
         if enabled {
             let mut orig = self.get_transform_from_index(index);
-            let save = orig;
-            ui.add(egui::DragValue::new(&mut orig).speed(0.1));
-            if orig != save {
+            if ui.add(egui::DragValue::new(&mut orig).speed(0.1)).changed() {
                 self.set_transform_from_index(index, orig);
                 self.prep_update();
             }
