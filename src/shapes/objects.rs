@@ -119,17 +119,29 @@ impl Object {
     }
 
     pub fn scale_x(&mut self, x: f64) {
-        self.transformations_list[3] = x;
+        if x != 0.0 {
+            self.transformations_list[3] = x;
+        } else {
+            self.transformations_list[3] = EPSILON;
+        }
         self.update_transform();
     }
 
     pub fn scale_y(&mut self, y: f64) {
-        self.transformations_list[4] = y;
+        if y != 0.0 {
+            self.transformations_list[4] = y;
+        } else {
+            self.transformations_list[4] = EPSILON;
+        }
         self.update_transform();
     }
 
     pub fn scale_z(&mut self, z: f64) {
-        self.transformations_list[5] = z;
+        if z != 0.0 {
+            self.transformations_list[5] = z
+        } else {
+            self.transformations_list[5] = EPSILON;
+        }
         self.update_transform();
     }
 

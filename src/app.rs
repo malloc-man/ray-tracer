@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::Shape::Sphere;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
+use crate::egui::Align;
 
 pub struct RayTracer {
     world: World,
@@ -42,10 +43,13 @@ impl epi::App for RayTracer {
         _frame: &epi::Frame,
         _storage: Option<&dyn epi::Storage>,
     ) {
-        self.camera.set_transform(view_transform(
+        self.camera.set_transform(
+            view_transform(
                 point(0.0, 1.5, -5.0),
                 point(0.0, 1.5, 0.0),
-                vector(0.0, 1.0, 0.0)));
+                vector(0.0, 1.0, 0.0)
+            )
+        );
     }
 
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
@@ -86,7 +90,7 @@ impl epi::App for RayTracer {
                         ui.set_enabled(self.active_object.is_some());
                         if ui.button("Delete active object").clicked() {
                             self.delete_active_object();
-                        }
+                        };
                     })
                 });
             });
@@ -125,10 +129,42 @@ impl epi::App for RayTracer {
         });
 
         egui::SidePanel::right("side_panel").show(ctx, |ui| {
-            ui.group(|ui| {
+
+            // Camera pane
+            ui.with_layout(egui::Layout::top_down_justified(Align::Center),|ui| {
+                ui.label("Camera");
+
+                ui.horizontal(|ui| {
+                    let mut hsize = self.camera.get_hsize();
+                    if ui.add(egui::DragValue::new(&mut hsize).speed(1)).changed() {
+                        self.camera.set_hsize(hsize);
+                        self.prep_update();
+                    }
+                    ui.label("x");
+
+                    let mut vsize = self.camera.get_vsize();
+                    if ui.add(egui::DragValue::new(&mut vsize).speed(1)).changed() {
+                        self.camera.set_vsize(vsize);
+                        self.prep_update();
+                    }
+                    ui.label("y");
+
+                    let mut fov = self.camera.get_fov().to_degrees();
+                    if ui.add(egui::DragValue::new(&mut fov).speed(0.5)).changed() {
+                        self.camera.set_fov(fov.to_radians());
+                        self.prep_update();
+                    }
+                    ui.label("FOV");
+                });
+            });
+
+            ui.add(egui::Separator::default());
+
+            // Materials pane
+            ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
                 ui.set_enabled(self.active_object.is_some());
                 let index = self.active_object.unwrap_or(usize::MAX);
-
+                ui.label("Material attributes");
                 ui.horizontal(|ui| {
                     if index == usize::MAX {
                         ui.color_edit_button_rgb(&mut [1.0, 1.0, 1.0]);
@@ -178,7 +214,7 @@ impl epi::App for RayTracer {
                     }
                 }
 
-                ui.vertical(|ui| {
+                ui.horizontal(|ui| {
                     if index != usize::MAX {
                         let ptrn = self.active_object().get_pattern();
                         if ptrn.get_pattern_type() != PatternType::Solid {
@@ -206,7 +242,7 @@ impl epi::App for RayTracer {
                                     );
                                     self.prep_update();
                                 }
-                                ui.label("Pattern Color 1");
+                                ui.label("Color 1");
                             });
 
                             ui.horizontal(|ui| {
@@ -221,7 +257,7 @@ impl epi::App for RayTracer {
                                     );
                                     self.prep_update();
                                 }
-                                ui.label("Pattern Color 2");
+                                ui.label("Color 2");
                             });
                         }
                     }
@@ -271,10 +307,23 @@ impl epi::App for RayTracer {
                 });
             });
 
-            ui.group(|ui| {
+            // Interface for shape-specific attributes (min, max, end caps)
+            if self.active_object.is_some() {
+                let curr_shape = self.active_object().shape;
+                match curr_shape {
+                    Shape::Cone {min, max, closed} => self.shape_specific_interface(min, max, closed, ui),
+                    Shape::Cylinder {min, max, closed} => self.shape_specific_interface(min, max, closed, ui),
+                    _ => ()
+                };
+            }
+
+            ui.add(egui::Separator::default());
+
+            // Transformations
+            ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
                 ui.set_enabled(self.active_object.is_some());
                 let index = self.active_object.unwrap_or(usize::MAX);
-
+                ui.label("Object transformations");
                 ui.horizontal(|ui| {
                     ui.group(|ui| {
                         self.transformation_drag_updater(0, ui, index != usize::MAX);
@@ -327,7 +376,11 @@ impl epi::App for RayTracer {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let mut idx = 0;
                 for item in self.world.read_objects() {
-                    ui.selectable_value(&mut self.active_object, Some(idx), (format!("{}", item.shape)));
+                    ui.selectable_value(
+                        &mut self.active_object,
+                        Some(idx),
+                        format!("{}", item.shape)
+                    );
                     idx += 1;
                 }
             });
@@ -504,5 +557,56 @@ impl RayTracer {
             14 => self.active_object().shear_zy(value),
             _ => return,
         };
+    }
+
+    fn shape_specific_interface(&mut self, min: f64, max: f64, closed: bool, ui: &mut egui::Ui) {
+        let mut new_min = min;
+        let mut new_max = max;
+        let mut new_closed = closed;
+
+        ui.add(egui::Separator::default());
+
+        ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
+            ui.label("Shape-specific attributes");
+            ui.horizontal(|ui| {
+                ui.add(egui::DragValue::new(&mut new_min).speed(0.1));
+                ui.label("Min");
+                ui.add(egui::DragValue::new(&mut new_max).speed(0.1));
+                ui.label("Max");
+                ui.add(egui::Checkbox::new(&mut new_closed, "Closed"));
+            });
+        });
+
+        let shape = self.active_object().shape;
+
+        if new_min != min {
+            let new_shape = match shape {
+                Shape::Cone {min, max, closed} => Shape::Cone {min: new_min, max, closed},
+                Shape::Cylinder {min, max, closed} => Shape::Cylinder {min: new_min, max, closed},
+                _ => self.active_object().shape,
+            };
+            self.active_object().shape = new_shape;
+            self.prep_update();
+        };
+
+        if new_max != max {
+            let new_shape = match shape {
+                Shape::Cone {min, max, closed} => Shape::Cone {min, max: new_max, closed},
+                Shape::Cylinder {min, max, closed} => Shape::Cylinder {min, max: new_max, closed},
+                _ => self.active_object().shape,
+            };
+            self.active_object().shape = new_shape;
+            self.prep_update();
+        }
+
+        if new_closed != closed {
+            let new_shape = match shape {
+                Shape::Cone {min, max, closed} => Shape::Cone {min, max, closed: new_closed},
+                Shape::Cylinder {min, max, closed} => Shape::Cylinder {min, max, closed: new_closed},
+                _ => self.active_object().shape,
+            };
+            self.active_object().shape = new_shape;
+            self.prep_update();
+        }
     }
 }

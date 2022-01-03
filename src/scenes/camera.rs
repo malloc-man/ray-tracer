@@ -17,7 +17,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(hsize: usize, vsize: usize, field_of_view: f64) -> Self {
-        Self {
+        let mut new = Self {
             hsize,
             vsize,
             field_of_view,
@@ -26,20 +26,25 @@ impl Camera {
             pixel_size: 0.0,
             half_width: 0.0,
             half_height: 0.0,
-        }.initialize()
+        };
+        new.initialize();
+        new
     }
 
     pub fn new_preview(camera: &Camera) -> Self {
-        Self {
-            hsize: 200,
-            vsize: 200,
+        let ratio = camera.hsize as f32 / camera.vsize as f32;
+        let mut new = Self {
+            hsize: (400.0 * ratio) as usize,
+            vsize: 400,
             field_of_view: camera.field_of_view,
             transform: camera.transform,
             inverse_transform: camera.inverse_transform,
             pixel_size: 0.0,
             half_width: 0.0,
             half_height: 0.0,
-        }.initialize()
+        };
+        new.initialize();
+        new
     }
 
     pub fn get_hsize(&self) -> usize {
@@ -50,7 +55,29 @@ impl Camera {
         self.vsize
     }
 
-    fn initialize(mut self) -> Self {
+    pub fn get_fov(&self) -> f64 {
+        self.field_of_view
+    }
+
+    pub fn set_hsize(&mut self, hsize: usize) -> &mut Self {
+        self.hsize = hsize;
+        self.initialize();
+        self
+    }
+
+    pub fn set_vsize(&mut self, vsize: usize) -> &mut Self {
+        self.vsize = vsize;
+        self.initialize();
+        self
+    }
+
+    pub fn set_fov(&mut self, fov: f64) -> &mut Self {
+        self.field_of_view = fov;
+        self.initialize();
+        self
+    }
+
+    fn initialize(&mut self) -> &mut Self {
         let half_view = (self.field_of_view / 2.0).tan();
         let aspect = self.hsize as f64 / self.vsize as f64;
         if aspect >= 1.0 {
@@ -68,6 +95,10 @@ impl Camera {
         self.transform = transform;
         self.inverse_transform = transform.invert();
         self
+    }
+
+    pub fn get_transform(&mut self) -> Matrix4 {
+        self.transform
     }
 
     fn ray_for_pixel(&self, x: usize, y: usize) -> Ray {
