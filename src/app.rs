@@ -4,6 +4,8 @@ use eframe::{egui, epi};
 use image::RgbImage;
 use crate::prelude::*;
 use crate::Shape::Sphere;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 pub struct RayTracer {
     world: World,
@@ -11,16 +13,20 @@ pub struct RayTracer {
     active_object: Option<usize>,
     last_preview: Option<(egui::Vec2, egui::TextureId)>,
     preview_up_to_date: bool,
+    rendering: Arc<AtomicBool>,
+    rendering_progress: Arc<AtomicUsize>,
 }
 
 impl Default for RayTracer {
     fn default() -> Self {
         Self {
             world: World::new_default(),
-            camera: Camera::new(640, 480, FRAC_PI_2),
+            camera: Camera::new(1000, 800, FRAC_PI_2),
             active_object: None,
             last_preview: None,
             preview_up_to_date: false,
+            rendering: Arc::new(AtomicBool::new(false)),
+            rendering_progress: Arc::new(AtomicUsize::new(0)),
         }
     }
 }
@@ -78,11 +84,43 @@ impl epi::App for RayTracer {
                     });
                     ui.group(|ui| {
                         ui.set_enabled(self.active_object.is_some());
-                        if ui.button("Delete Active Object").clicked() {
+                        if ui.button("Delete active object").clicked() {
                             self.delete_active_object();
                         }
                     })
                 });
+            });
+        });
+
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.add_enabled(
+                    !self.rendering.load(Ordering::Relaxed),
+                    egui::Button::new("Render")
+                ).clicked() {
+                    let wd = self.world.clone();
+                    let cmra = self.camera;
+                    let arc_rendering_state = self.rendering.clone();
+                    let arc_progress = self.rendering_progress.clone();
+                    std::thread::spawn(move || {
+                        arc_rendering_state.store(true, Ordering::SeqCst);
+                        let canvas = cmra.parallel_render(&wd, arc_progress);
+                        canvas.canvas_to_png("image.png");
+                        arc_rendering_state.store(false, Ordering::SeqCst);
+                    });
+                };
+
+                if self.rendering.load(Ordering::SeqCst) {
+                    let progress = self.rendering_progress.load(Ordering::Relaxed) as f32 /
+                        (self.camera.get_vsize() * self.camera.get_vsize()) as f32;
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            egui::ProgressBar::new(progress)
+                                .show_percentage()
+                                .animate(true)
+                        );
+                    });
+                };
             });
         });
 
@@ -283,11 +321,6 @@ impl epi::App for RayTracer {
                     ui.label("Shearing");
                 });
             });
-
-            if ui.button("Render").clicked() {
-                let canvas = self.camera.parallel_render(&self.world);
-                canvas.canvas_to_png("image.png");
-            }
         });
 
         egui::SidePanel::right("object_list").show(ctx, |ui| {
@@ -439,9 +472,9 @@ impl RayTracer {
             3 => self.read_active_object().get_scale_x(),
             4 => self.read_active_object().get_scale_y(),
             5 => self.read_active_object().get_scale_z(),
-            6 => self.read_active_object().get_rotate_x(),
-            7 => self.read_active_object().get_rotate_y(),
-            8 => self.read_active_object().get_rotate_z(),
+            6 => self.read_active_object().get_rotate_x().to_degrees(),
+            7 => self.read_active_object().get_rotate_y().to_degrees(),
+            8 => self.read_active_object().get_rotate_z().to_degrees(),
             9 => self.read_active_object().get_shear_xy(),
             10 => self.read_active_object().get_shear_xz(),
             11 => self.read_active_object().get_shear_yx(),
@@ -460,9 +493,9 @@ impl RayTracer {
             3 => self.active_object().scale_x(value),
             4 => self.active_object().scale_y(value),
             5 => self.active_object().scale_z(value),
-            6 => self.active_object().rotate_x(value),
-            7 => self.active_object().rotate_y(value),
-            8 => self.active_object().rotate_z(value),
+            6 => self.active_object().rotate_x(value.to_radians()),
+            7 => self.active_object().rotate_y(value.to_radians()),
+            8 => self.active_object().rotate_z(value.to_radians()),
             9 => self.active_object().shear_xy(value),
             10 => self.active_object().shear_xz(value),
             11 => self.active_object().shear_yx(value),

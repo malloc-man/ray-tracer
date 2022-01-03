@@ -1,7 +1,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use rayon::prelude::*;
 use crate::prelude::*;
 
+#[derive(Copy, Clone, Debug)]
 pub struct Camera {
     hsize: usize,
     vsize: usize,
@@ -10,7 +12,7 @@ pub struct Camera {
     inverse_transform: Matrix4,
     pixel_size: f64,
     half_width: f64,
-    half_height: f64
+    half_height: f64,
 }
 
 impl Camera {
@@ -38,6 +40,14 @@ impl Camera {
             half_width: 0.0,
             half_height: 0.0,
         }.initialize()
+    }
+
+    pub fn get_hsize(&self) -> usize {
+        self.hsize
+    }
+
+    pub fn get_vsize(&self) -> usize {
+        self.vsize
     }
 
     fn initialize(mut self) -> Self {
@@ -85,8 +95,8 @@ impl Camera {
         image
     }
 
-    pub fn parallel_render(&self, world: &World) -> Canvas {
-        let pixels_rendered = AtomicUsize::new(0);
+    pub fn parallel_render(&self, world: &World, tracker: Arc<AtomicUsize>) -> Canvas {
+        tracker.store(0, Ordering::Relaxed);
 
         println!("Beginning render...");
 
@@ -105,11 +115,11 @@ impl Camera {
                         if (row * self.hsize) + col < band.len() {
                             band[(row * self.hsize) + col] =
                                 world.color_at(ray, DEFAULT_RECURSION_DEPTH);
-                            pixels_rendered.fetch_add(1, Ordering::SeqCst);
+                            tracker.fetch_add(1, Ordering::SeqCst);
                         }
                     }
                     print!("\rRender progress: {:.1}%",
-                           pixels_rendered.load(Ordering::Relaxed) as f64 * 100.0 /
+                           tracker.load(Ordering::Relaxed) as f64 * 100.0 /
                                ((self.hsize * self.vsize) as f64));
                 }
             });
@@ -213,7 +223,7 @@ mod tests {
 
         c.set_transform(view_transform(from, to, up));
 
-        let image = c.parallel_render(&w);
+        let image = c.parallel_render(&w, Arc::new(AtomicUsize::new(0)));
         assert_eq!(image.pixel_at(5, 5), color(0.38066, 0.47583, 0.2855));
     }
 }

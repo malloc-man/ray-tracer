@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 pub const DEFAULT_RECURSION_DEPTH: usize = 5;
 
+#[derive(Clone)]
 pub struct World {
     objects: Vec<Object>,
     lights: Vec<Light>,
