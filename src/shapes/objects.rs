@@ -51,205 +51,6 @@ impl Object {
         }
     }
 
-    /* --------------------------- general transformations --------------------------- */
-
-    pub fn set_transform(&mut self, transform: Matrix4) -> &Self {
-        self.transform = transform;
-        self.inverse_transform = transform.invert();
-        self.inverse_transform_transposed = self.inverse_transform.transpose();
-        self
-    }
-
-    pub fn get_transform(&self) -> Matrix4 {
-        self.transform
-    }
-
-    pub fn update_transform(&mut self) {
-        let translation = translation(
-            self.get_translate_x(),
-            self.get_translate_y(),
-            self.get_translate_z(),
-        );
-        let scaling = scaling(
-            self.get_scale_x(),
-            self.get_scale_y(),
-            self.get_scale_z(),
-        );
-        let rotation_x = rotation_x(self.get_rotate_x());
-        let rotation_y = rotation_y(self.get_rotate_y());
-        let rotation_z = rotation_z(self.get_rotate_z());
-
-        let shear = shearing(
-            self.get_shear_xy(),
-            self.get_shear_xz(),
-            self.get_shear_yx(),
-            self.get_shear_yz(),
-            self.get_shear_zx(),
-            self.get_shear_zy(),
-        );
-
-        self.set_transform(translation * scaling * rotation_x * rotation_y * rotation_z * shear);
-    }
-
-    pub fn get_inverse_transform(&self) -> Matrix4 {
-        self.inverse_transform
-    }
-
-    pub fn get_inverse_transform_transposed(&self) -> Matrix4 {
-        self.inverse_transform_transposed
-    }
-
-    /* --------------------------- modify transformations --------------------------- */
-
-    pub fn translate_x(&mut self, x: f64) {
-        self.transformations_list[0] = x;
-        self.update_transform();
-    }
-
-    pub fn translate_y(&mut self, y: f64) {
-        self.transformations_list[1] = y;
-        self.update_transform();
-    }
-
-    pub fn translate_z(&mut self, z: f64) {
-        self.transformations_list[2] = z;
-        self.update_transform();
-    }
-
-    pub fn scale_x(&mut self, x: f64) {
-        if x != 0.0 {
-            self.transformations_list[3] = x;
-        } else {
-            self.transformations_list[3] = EPSILON;
-        }
-        self.update_transform();
-    }
-
-    pub fn scale_y(&mut self, y: f64) {
-        if y != 0.0 {
-            self.transformations_list[4] = y;
-        } else {
-            self.transformations_list[4] = EPSILON;
-        }
-        self.update_transform();
-    }
-
-    pub fn scale_z(&mut self, z: f64) {
-        if z != 0.0 {
-            self.transformations_list[5] = z
-        } else {
-            self.transformations_list[5] = EPSILON;
-        }
-        self.update_transform();
-    }
-
-    pub fn rotate_x(&mut self, x: f64) {
-        self.transformations_list[6] = x;
-        self.update_transform();
-    }
-
-    pub fn rotate_y(&mut self, y: f64) {
-        self.transformations_list[7] = y;
-        self.update_transform();
-    }
-
-    pub fn rotate_z(&mut self, z: f64) {
-        self.transformations_list[8] = z;
-        self.update_transform();
-    }
-
-    pub fn shear_xy(&mut self, xy: f64) {
-        self.transformations_list[9] = xy;
-        self.update_transform();
-    }
-
-    pub fn shear_xz(&mut self, xz: f64) {
-        self.transformations_list[10] = xz;
-        self.update_transform();
-    }
-
-    pub fn shear_yx(&mut self, yx: f64) {
-        self.transformations_list[11] = yx;
-        self.update_transform();
-    }
-
-    pub fn shear_yz(&mut self, yz: f64) {
-        self.transformations_list[12] = yz;
-        self.update_transform();
-    }
-
-    pub fn shear_zx(&mut self, zx: f64) {
-        self.transformations_list[13] = zx;
-        self.update_transform();
-    }
-
-    pub fn shear_zy(&mut self, zy: f64) {
-        self.transformations_list[14] = zy;
-        self.update_transform();
-    }
-
-    /* --------------------------- access transformations --------------------------- */
-
-    pub fn get_translate_x(&self) -> f64 {
-        self.transformations_list[0]
-    }
-
-    pub fn get_translate_y(&self) -> f64 {
-        self.transformations_list[1]
-    }
-
-    pub fn get_translate_z(&self) -> f64 {
-        self.transformations_list[2]
-    }
-
-    pub fn get_scale_x(&self) -> f64 {
-        self.transformations_list[3]
-    }
-
-    pub fn get_scale_y(&self) -> f64 {
-        self.transformations_list[4]
-    }
-
-    pub fn get_scale_z(&self) -> f64 {
-        self.transformations_list[5]
-    }
-
-    pub fn get_rotate_x(&self) -> f64 {
-        self.transformations_list[6]
-    }
-
-    pub fn get_rotate_y(&self) -> f64 {
-        self.transformations_list[7]
-    }
-
-    pub fn get_rotate_z(&self) -> f64 {
-        self.transformations_list[8]
-    }
-
-    pub fn get_shear_xy(&self) -> f64 {
-        self.transformations_list[9]
-    }
-
-    pub fn get_shear_xz(&self) -> f64 {
-        self.transformations_list[10]
-    }
-
-    pub fn get_shear_yx(&self) -> f64 {
-        self.transformations_list[11]
-    }
-
-    pub fn get_shear_yz(&self) -> f64 {
-        self.transformations_list[12]
-    }
-
-    pub fn get_shear_zx(&self) -> f64 {
-        self.transformations_list[13]
-    }
-
-    pub fn get_shear_zy(&self) -> f64 {
-        self.transformations_list[14]
-    }
-
     /* --------------------------- get material attributes --------------------------- */
 
     pub fn get_material(&self) -> Material {
@@ -399,5 +200,34 @@ impl Object {
         let local_point = self.inverse_transform * point;
         let pattern_space_point = self.get_pattern_inverse_transform() * local_point;
         self.get_pattern().pattern_at(pattern_space_point)
+    }
+}
+
+impl Groupable for Object {
+    fn set_transform(&mut self, transform: Matrix4) {
+        self.transform = transform;
+        self.inverse_transform = transform.invert();
+        self.inverse_transform_transposed = self.inverse_transform.transpose();
+    }
+
+    fn set_transformation_list(&mut self, index: usize, x: f64) {
+        self.transformations_list[index] = x;
+        self.update_transform();
+    }
+
+    fn get_transform(&self) -> Matrix4 {
+        self.transform
+    }
+
+    fn get_inverse_transform(&self) -> Matrix4 {
+        self.inverse_transform
+    }
+
+    fn get_inverse_transform_transposed(&self) -> Matrix4 {
+        self.inverse_transform_transposed
+    }
+
+    fn get_transformation_list(&self, index: usize) -> f64 {
+        self.transformations_list[index]
     }
 }

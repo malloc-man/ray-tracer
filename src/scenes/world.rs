@@ -2,15 +2,16 @@ use crate::prelude::*;
 
 pub const DEFAULT_RECURSION_DEPTH: usize = 5;
 
-#[derive(Clone)]
 pub struct World {
+    groups: Vec<GroupNode>,
     objects: Vec<Object>,
     lights: Vec<Light>,
 }
 
 impl World {
-    pub fn new(objects: Vec<Object>, lights: Vec<Light>) -> Self {
+    pub fn new(groups: Vec<GroupNode>, objects: Vec<Object>, lights: Vec<Light>) -> Self {
         Self {
+            groups,
             objects,
             lights,
         }
@@ -40,7 +41,7 @@ impl World {
 
         let lights = vec![light];
 
-        World::new(objects, lights)
+        World::new(vec![], objects, lights)
     }
 
     pub fn add_object(&mut self, object: Object) {
@@ -76,7 +77,6 @@ impl World {
     }
 
     fn shade_hit(&self, comps: Computations, remaining: usize) -> Color {
-
         let shadowed = self.is_shadowed(comps.over_point);
         let clr = lighting(comps.object.get_material(), comps.object, self.lights[0], comps.over_point, comps.eyev, comps.normalv, shadowed);
         let reflections = self.reflected_color(comps, remaining);
@@ -306,7 +306,7 @@ mod tests {
         let w_default = World::new_default();
         let light = Light::new(point(0.0, 0.25, 0.0), white());
 
-        let w = World::new(w_default.objects, vec![light]);
+        let w = World::new(vec![], w_default.objects, vec![light]);
         let r = Ray::new(point(0.0, 0.0, 0.0), vector(0.0, 0.0, 1.0));
         let shape = w.objects[1];
         let i = Intersection::new(0.5, shape);
@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_shade_hit_in_shadow() {
-        let mut w = World::new(vec![], vec![]);
+        let mut w = World::new(vec![], vec![], vec![]);
         w.lights.push(Light::new(point(0.0, 0.0, -10.0), white()));
         w.objects.push(spheres::new());
         w.objects.push(spheres::new());

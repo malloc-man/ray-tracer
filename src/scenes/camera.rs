@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 use rayon::prelude::*;
 use crate::prelude::*;
 
@@ -171,7 +169,9 @@ impl Camera {
         image
     }
 
-    pub fn parallel_render(&self, world: &World, tracker: Arc<AtomicUsize>) -> Canvas {
+    pub fn parallel_render(&self, world: Arc<RwLock<World>>, tracker: Arc<AtomicUsize>) -> Canvas {
+        let world = world.read().unwrap();
+
         tracker.store(0, Ordering::Relaxed);
 
         println!("Beginning render...");
@@ -202,7 +202,7 @@ impl Camera {
         image
     }
 
-    pub fn preview_parallel_render(&self, world: &World) -> Canvas {
+    pub fn preview_parallel_render(&self, world: RwLockReadGuard<World>) -> Canvas {
         const BAND_SIZE: usize = 10;
         let mut image = Canvas::new(self.hsize, self.vsize);
         image
@@ -290,7 +290,7 @@ mod tests {
 
     #[test]
     fn test_parallel_render_world() {
-        let w = World::new_default();
+        let w = Arc::new(RwLock::new(World::new_default()));
         let mut c = Camera::new(11, 11, FRAC_PI_2);
 
         let from = point(0.0, 0.0, -5.0);
@@ -299,7 +299,7 @@ mod tests {
 
         c.set_transform(view_transform(from, to, up));
 
-        let image = c.parallel_render(&w, Arc::new(AtomicUsize::new(0)));
+        let image = c.parallel_render(w, Arc::new(AtomicUsize::new(0)));
         assert_eq!(image.pixel_at(5, 5), color(0.38066, 0.47583, 0.2855));
     }
 }
