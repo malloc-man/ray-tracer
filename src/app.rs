@@ -1,6 +1,7 @@
 use eframe::{egui, epi};
 use crate::prelude::*;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::RwLockWriteGuard;
 use crate::egui::Align;
 
 pub struct RayTracer {
@@ -84,6 +85,7 @@ impl epi::App for RayTracer {
         let img_arc = self.preview_image.clone();
         let cam_arc = self.preview_camera.clone();
 
+        // Thread that handles rendering the preview image.
         std::thread::spawn(move || {
             loop {
                 if !stop.load(Ordering::Relaxed) {
@@ -103,8 +105,280 @@ impl epi::App for RayTracer {
     }
 
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
-        self.update_preview(ctx, frame);
+        self.show_menu_bar(ctx, frame);
 
+        self.show_render_bar(ctx);
+
+        egui::SidePanel::right("side_panel").show(ctx, |ui| {
+            let arc_world = self.world.clone();
+            self.show_camera_pane(ui);
+            ui.add(egui::Separator::default());
+
+            self.show_materials_pane(ui);
+
+            // Interface for shape-specific attributes (min, max, end caps)
+            if self.active_object.is_some() {
+                let lock = &mut arc_world.write().unwrap();
+                let curr_obj = &lock.read_objects()[self.active_object.unwrap()];
+                match curr_obj {
+                    ObjectHolder::Object(object) => {
+                        match object.shape {
+                            Shape::Cone {min, max, closed} => &self.shape_specific_interface(min, max, closed, ui, lock),
+                            Shape::Cylinder {min, max, closed} => &self.shape_specific_interface(min, max, closed, ui, lock),
+                            _ => &(),
+                        };
+                    },
+                    ObjectHolder::Group(group) => ()
+                };
+            };
+
+            ui.add(egui::Separator::default());
+
+            // Transformations
+            self.show_transformation_panel(ui);
+        });
+
+        egui::SidePanel::right("object_list").show(ctx, |ui| {
+            let arc_world = self.world.clone();
+            let lock = arc_world.read().unwrap();
+            self.show_object_list(ui, &lock);
+        });
+
+        let arc_img = self.preview_image.clone();
+        self.update_preview(ctx, frame, arc_img.write().unwrap());
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.show_preview_image(ui);
+            egui::warn_if_debug_build(ui);
+        });
+    }
+}
+
+impl RayTracer {
+    fn delete_active_object(&mut self) {
+        if let Some(index) = self.active_object {
+            self.world.write().unwrap().objects().remove(index);
+            match index {
+                0 => self.active_object = None,
+                _ => self.active_object = Some(index-1),
+            }
+            self.prep_update();
+        }
+    }
+
+    fn update_preview(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame, curr_preview: RwLockWriteGuard<Option<epi::Image>>) {
+        if let Some(image) = curr_preview.as_ref() {
+            let x = image.size[0] as f32;
+            let y = image.size[1] as f32;
+            let texture = frame.alloc_texture(image.clone());
+            let size = egui::Vec2::new(x, y);
+            self.last_preview = Some((size, texture));
+            frame.free_texture(texture);
+        }
+    }
+
+    fn prep_update(&mut self) {
+        self.preview_up_to_date.store(false, Ordering::Relaxed);
+    }
+
+    fn add_new_shape(&mut self, shape: Shape) {
+        let new = match shape {
+            Shape::Cone {min, max, closed} => cones::new(min, max, closed),
+            Shape::Cube => cubes::new(),
+            Shape::Cylinder {min, max, closed} => cylinders::new(min, max, closed),
+            Shape::Plane => planes::new(),
+            Shape::Sphere => spheres::new(),
+        };
+        self.world.write().unwrap().add_object(new);
+        self.active_object = Some(self.world.read().unwrap().read_objects().len()-1);
+        self.prep_update();
+    }
+
+    fn add_new_group(&mut self) {
+        self.world.write().unwrap().add_group(Group::new_empty());
+        self.active_object = Some(self.world.read().unwrap().read_objects().len()-1);
+        self.prep_update();
+    }
+
+    fn material_attribute_slider(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool, object: &mut Object) {
+        if enabled {
+            let (mut orig, name, rng) = self.get_scalar_attribute_from_index(index, object);
+            if ui.add(egui::Slider::new(&mut orig, rng).text(name)).changed() {
+                self.set_scalar_attribute_from_index(index, orig, object);
+                self.prep_update();
+            }
+        } else {
+            let (name, rng) = self.scalar_attribute_spec(index);
+            ui.add(egui::Slider::new(&mut 0.0, rng).text(name));
+        }
+    }
+
+    fn get_scalar_attribute_from_index(&self, index: u8, object: &mut Object) -> (f64, &str, std::ops::RangeInclusive<f64>) {
+        let (name, rng) = self.scalar_attribute_spec(index);
+        match index {
+            0 => (object.get_ambient(), name, rng),
+            1 => (object.get_diffuse(), name, rng),
+            2 => (object.get_specular(), name, rng),
+            3 => (object.get_shininess(), name, rng),
+            4 => (object.get_reflective(), name, rng),
+            5 => (object.get_refractive_index(), name, rng),
+            6 => (object.get_transparency(), name, rng),
+            _ => (0.0, "", 0.0..=0.0)
+        }
+    }
+
+    fn scalar_attribute_spec(&self, index: u8) -> (&str, std::ops::RangeInclusive<f64>) {
+        match index {
+            0 => ("Ambient", 0.0..=1.0),
+            1 => ("Diffuse", 0.0..=1.0),
+            2 => ("Specular", 0.0..=1.0),
+            3 => ("Shininess", 0.0..=400.0),
+            4 => ("Reflective", 0.0..=1.0),
+            5 => ("Refractive Index", 0.0..=5.0),
+            6 => ("Transparency", 0.0..=1.0),
+            _ => ("", 0.0..=0.0)
+        }
+    }
+
+    fn set_scalar_attribute_from_index(&mut self, index: u8, value: f64, object: &mut Object) {
+        match index {
+            0 => object.set_ambient(value),
+            1 => object.set_diffuse(value),
+            2 => object.set_specular(value),
+            3 => object.set_shininess(value),
+            4 => object.set_reflective(value),
+            5 => object.set_refractive_index(value),
+            6 => object.set_transparency(value),
+            _ => return
+        };
+    }
+
+    fn transformation_drag_updater(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
+        let world = self.world.clone();
+        if enabled {
+            let mut lock = world.write().unwrap();
+            let mut orig = self.get_transform_from_index(index, &lock);
+            if ui.add(egui::DragValue::new(&mut orig).speed(0.1)).changed() {
+                self.set_transform_from_index(index, orig, &mut lock);
+                self.prep_update();
+            }
+        } else {
+            ui.add(egui::DragValue::new(&mut 0.0).speed(0.1));
+        }
+    }
+
+    fn get_transform_from_index(&self, index: u8, lock: &RwLockWriteGuard<World>) -> f64 {
+        let curr_obj = &lock.read_objects()[self.active_object.unwrap()];
+        match curr_obj {
+            ObjectHolder::Object(ref object) => {
+                match index {
+                    0 => object.get_translate_x(),
+                    1 => object.get_translate_y(),
+                    2 => object.get_translate_z(),
+                    3 => object.get_scale_x(),
+                    4 => object.get_scale_y(),
+                    5 => object.get_scale_z(),
+                    6 => object.get_rotate_x().to_degrees(),
+                    7 => object.get_rotate_y().to_degrees(),
+                    8 => object.get_rotate_z().to_degrees(),
+                    9 => object.get_shear_xy(),
+                    10 => object.get_shear_xz(),
+                    11 => object.get_shear_yx(),
+                    12 => object.get_shear_yz(),
+                    13 => object.get_shear_zx(),
+                    14 => object.get_shear_zy(),
+                    _ => 0.0
+                }
+            }
+            _ => 0.0,
+        }
+    }
+
+    fn set_transform_from_index(&mut self, index: u8, value: f64, lock: &mut RwLockWriteGuard<World>) {
+        let curr_obj = &mut lock.objects()[self.active_object.unwrap()];
+        match curr_obj {
+            ObjectHolder::Object(ref mut object) => {
+                match index {
+                    0 => object.translate_x(value),
+                    1 => object.translate_y(value),
+                    2 => object.translate_z(value),
+                    3 => object.scale_x(value),
+                    4 => object.scale_y(value),
+                    5 => object.scale_z(value),
+                    6 => object.rotate_x(value.to_radians()),
+                    7 => object.rotate_y(value.to_radians()),
+                    8 => object.rotate_z(value.to_radians()),
+                    9 => object.shear_xy(value),
+                    10 => object.shear_xz(value),
+                    11 => object.shear_yx(value),
+                    12 => object.shear_yz(value),
+                    13 => object.shear_zx(value),
+                    14 => object.shear_zy(value),
+                    _ => return,
+                };
+            }
+            _ => ()
+        }
+
+    }
+
+    fn shape_specific_interface(&mut self, min: f64, max: f64, closed: bool, ui: &mut egui::Ui, lock: &mut RwLockWriteGuard<World>) {
+        let mut new_min = min;
+        let mut new_max = max;
+        let mut new_closed = closed;
+
+        ui.add(egui::Separator::default());
+
+        ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
+            ui.label("Shape-specific attributes");
+            ui.horizontal(|ui| {
+                ui.add(egui::DragValue::new(&mut new_min).speed(0.1));
+                ui.label("Min");
+                ui.add(egui::DragValue::new(&mut new_max).speed(0.1));
+                ui.label("Max");
+                ui.add(egui::Checkbox::new(&mut new_closed, "Closed"));
+            });
+        });
+
+        let curr_obj = &mut lock.objects()[self.active_object.unwrap()];
+
+        match *curr_obj {
+            ObjectHolder::Object(ref mut shape) => {
+                if new_min != min {
+                    let new_shape = match shape.shape {
+                        Shape::Cone {min: _, max, closed} => Shape::Cone {min: new_min, max, closed},
+                        Shape::Cylinder {min: _, max, closed} => Shape::Cylinder {min: new_min, max, closed},
+                        _ => shape.shape,
+                    };
+                    shape.shape = new_shape;
+                    self.prep_update();
+                };
+
+                if new_max != max {
+                    let new_shape = match shape.shape {
+                        Shape::Cone {min, max: _, closed} => Shape::Cone {min, max: new_max, closed},
+                        Shape::Cylinder {min, max: _, closed} => Shape::Cylinder {min, max: new_max, closed},
+                        _ => shape.shape,
+                    };
+                    shape.shape = new_shape;
+                    self.prep_update();
+                }
+
+                if new_closed != closed {
+                    let new_shape = match shape.shape {
+                        Shape::Cone {min, max, closed: _} => Shape::Cone {min, max, closed: new_closed},
+                        Shape::Cylinder {min, max, closed: _} => Shape::Cylinder {min, max, closed: new_closed},
+                        _ => shape.shape,
+                    };
+                    shape.shape = new_shape;
+                    self.prep_update();
+                }
+            }
+            _ => ()
+        }
+    }
+
+    fn show_menu_bar(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -136,6 +410,9 @@ impl epi::App for RayTracer {
                             self.add_new_shape(Shape::Sphere);
                         }
                     });
+                    if ui.button("New Group").clicked() {
+                        self.add_new_group();
+                    }
                     ui.group(|ui| {
                         ui.set_enabled(self.active_object.is_some());
                         if ui.button("Delete active object").clicked() {
@@ -145,7 +422,9 @@ impl epi::App for RayTracer {
                 });
             });
         });
+    }
 
+    fn show_render_bar(&mut self, ctx: &egui::CtxRef) {
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.add_enabled(
@@ -177,146 +456,145 @@ impl epi::App for RayTracer {
                 };
             });
         });
+    }
 
-        egui::SidePanel::right("side_panel").show(ctx, |ui| {
+    fn show_camera_pane(&mut self, ui: &mut egui::Ui) {
+        ui.with_layout(egui::Layout::top_down_justified(Align::Center),|ui| {
+            ui.label("Camera");
 
-            // Camera pane
-            ui.with_layout(egui::Layout::top_down_justified(Align::Center),|ui| {
-                ui.label("Camera");
+            ui.horizontal(|ui| {
+                let mut hsize = self.camera.get_hsize();
+                if ui.add(egui::DragValue::new(&mut hsize).speed(1)).changed() {
+                    self.prep_update();
+                    self.camera.set_hsize(hsize);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("x");
 
-                ui.horizontal(|ui| {
-                    let mut hsize = self.camera.get_hsize();
-                    if ui.add(egui::DragValue::new(&mut hsize).speed(1)).changed() {
-                        self.prep_update();
-                        self.camera.set_hsize(hsize);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("x");
+                let mut vsize = self.camera.get_vsize();
+                if ui.add(egui::DragValue::new(&mut vsize).speed(1)).changed() {
+                    self.prep_update();
+                    self.camera.set_vsize(vsize);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("y");
 
-                    let mut vsize = self.camera.get_vsize();
-                    if ui.add(egui::DragValue::new(&mut vsize).speed(1)).changed() {
-                        self.prep_update();
-                        self.camera.set_vsize(vsize);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("y");
-
-                    let mut fov = self.camera.get_fov().to_degrees();
-                    if ui.add(egui::DragValue::new(&mut fov).speed(0.5)).changed() {
-                        self.prep_update();
-                        self.camera.set_fov(fov.to_radians());
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("FOV");
-                });
-
-                ui.add_space(4.0);
-
-                ui.horizontal(|ui| {
-                    let mut from = self.camera.get_from();
-
-                    if ui.add(egui::DragValue::new(&mut from.x).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_from(from);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("x");
-                    if ui.add(egui::DragValue::new(&mut from.y).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_from(from);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("y");
-                    if ui.add(egui::DragValue::new(&mut from.z).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_from(from);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("z");
-                    ui.label("|   From");
-                });
-
-                ui.horizontal(|ui| {
-                    let mut to = self.camera.get_to();
-                    if ui.add(egui::DragValue::new(&mut to.x).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_to(to);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("x");
-                    if ui.add(egui::DragValue::new(&mut to.y).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_to(to);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("y");
-                    if ui.add(egui::DragValue::new(&mut to.z).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_to(to);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("z");
-                    ui.label("|   To");
-                });
-
-                ui.horizontal(|ui| {
-                    let mut up = self.camera.get_up();
-                    if ui.add(egui::DragValue::new(&mut up.x).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_up(up);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("x");
-                    if ui.add(egui::DragValue::new(&mut up.y).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_up(up);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("y");
-                    if ui.add(egui::DragValue::new(&mut up.z).speed(0.1)).changed() {
-                        self.prep_update();
-                        self.camera.set_up(up);
-                        let mut prev = self.preview_camera.write().unwrap();
-                        *prev = Camera::new_preview(&self.camera);
-                    }
-                    ui.label("z");
-                    ui.label("|   Up");
-                });
-
+                let mut fov = self.camera.get_fov().to_degrees();
+                if ui.add(egui::DragValue::new(&mut fov).speed(0.5)).changed() {
+                    self.prep_update();
+                    self.camera.set_fov(fov.to_radians());
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("FOV");
             });
 
-            ui.add(egui::Separator::default());
+            ui.add_space(4.0);
 
-            // Materials pane
-            ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
-                ui.set_enabled(self.active_object.is_some());
-                let index = self.active_object.unwrap_or(usize::MAX);
-                ui.label("Material attributes");
-                ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.color_edit_button_rgb(&mut [1.0, 1.0, 1.0]);
-                        ui.label("Base Color");
-                    } else {
-                        ui.set_enabled(self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_pattern().get_pattern_type() == PatternType::Solid);
-                        let orig = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_color();
+            ui.horizontal(|ui| {
+                let mut from = self.camera.get_from();
+
+                if ui.add(egui::DragValue::new(&mut from.x).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_from(from);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("x");
+                if ui.add(egui::DragValue::new(&mut from.y).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_from(from);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("y");
+                if ui.add(egui::DragValue::new(&mut from.z).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_from(from);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("z");
+                ui.label("|   From");
+            });
+
+            ui.horizontal(|ui| {
+                let mut to = self.camera.get_to();
+                if ui.add(egui::DragValue::new(&mut to.x).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_to(to);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("x");
+                if ui.add(egui::DragValue::new(&mut to.y).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_to(to);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("y");
+                if ui.add(egui::DragValue::new(&mut to.z).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_to(to);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("z");
+                ui.label("|   To");
+            });
+
+            ui.horizontal(|ui| {
+                let mut up = self.camera.get_up();
+                if ui.add(egui::DragValue::new(&mut up.x).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_up(up);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("x");
+                if ui.add(egui::DragValue::new(&mut up.y).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_up(up);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("y");
+                if ui.add(egui::DragValue::new(&mut up.z).speed(0.1)).changed() {
+                    self.prep_update();
+                    self.camera.set_up(up);
+                    let mut prev = self.preview_camera.write().unwrap();
+                    *prev = Camera::new_preview(&self.camera);
+                }
+                ui.label("z");
+                ui.label("|   Up");
+            });
+        });
+    }
+
+    fn show_materials_pane(&mut self, ui: &mut egui::Ui) {
+        if self.active_object.is_none() {
+            return;
+        }
+        let world = self.world.clone();
+        let mut lock = world.write().unwrap();
+        let curr_obj = &mut lock.objects()[self.active_object.unwrap()];
+        match curr_obj {
+            ObjectHolder::Object(ref mut object) => {
+                ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
+                    ui.label("Material attributes");
+                    ui.horizontal(|ui| {
+                        ui.set_enabled(object.get_pattern().get_pattern_type() == PatternType::Solid);
+                        let orig = object.get_color();
                         let mut color = [
                             orig.get_red() as f32,
                             orig.get_green() as f32,
                             orig.get_blue() as f32
                         ];
                         if ui.color_edit_button_rgb(&mut color).changed() {
-                            self.world.write().unwrap().objects()[self.active_object.unwrap()].set_color(
+                            object.set_color(
                                 surfaces::colors::color(
                                     color[0] as f64,
                                     color[1] as f64,
@@ -326,18 +604,12 @@ impl epi::App for RayTracer {
                             self.prep_update();
                         };
                         ui.label("Base Color");
-                    };
-                });
+                    });
 
-                if index == usize::MAX {
-                    egui::ComboBox::from_label("Pattern")
-                        .selected_text("Pattern")
-                        .show_ui(ui, |ui| {});
-                } else {
-                    let mut pattern = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_pattern().get_pattern_type();
+                    let mut pattern = object.get_pattern().get_pattern_type();
                     let orig = pattern;
                     egui::ComboBox::from_label("Pattern")
-                        .selected_text(format!("{}", self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_pattern()))
+                        .selected_text(format!("{}", object.get_pattern()))
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut pattern, PatternType::Solid, "Solid Color");
                             ui.selectable_value(&mut pattern, PatternType::Stripe, "Stripe");
@@ -346,15 +618,13 @@ impl epi::App for RayTracer {
                             ui.selectable_value(&mut pattern, PatternType::Checker3d, "Checkers");
                         });
                     if pattern != orig {
-                        let new_pattern = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_pattern().duplicate_different_type(pattern);
-                        self.world.write().unwrap().objects()[self.active_object.unwrap()].set_pattern(new_pattern);
+                        let new_pattern = object.get_pattern().duplicate_different_type(pattern);
+                        object.set_pattern(new_pattern);
                         self.prep_update();
-                    }
-                }
+                    };
 
-                ui.horizontal(|ui| {
-                    if index != usize::MAX {
-                        let ptrn = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_pattern();
+                    ui.horizontal(|ui| {
+                        let ptrn = object.get_pattern();
                         if ptrn.get_pattern_type() != PatternType::Solid {
                             let clrs = ptrn.colors();
                             let mut color1 = [
@@ -375,7 +645,7 @@ impl epi::App for RayTracer {
                                         color1[1] as f64,
                                         color1[2] as f64,
                                     );
-                                    self.world.write().unwrap().objects()[self.active_object.unwrap()].set_pattern(
+                                    object.set_pattern(
                                         ptrn.duplicate_change_color_1(new_color)
                                     );
                                     self.prep_update();
@@ -390,348 +660,140 @@ impl epi::App for RayTracer {
                                         color2[1] as f64,
                                         color2[2] as f64,
                                     );
-                                    self.world.write().unwrap().objects()[self.active_object.unwrap()].set_pattern(
+                                    object.set_pattern(
                                         ptrn.duplicate_change_color_2(new_color)
                                     );
                                     self.prep_update();
                                 }
                                 ui.label("Color 2");
                             });
-                        }
-                    }
-                });
+                        };
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(0, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(0, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(1, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(1, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(2, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(2, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(3, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(3, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(4, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(4, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(5, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(5, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    self.material_attribute_slider(6, ui, index != usize::MAX);
-                });
+                    ui.horizontal(|ui| {
+                        self.material_attribute_slider(6, ui, true, object);
+                    });
 
-                ui.horizontal(|ui| {
-                    if index == usize::MAX {
-                        ui.checkbox(&mut false, "Casts shadow");
-                    } else {
-                        let mut casts_shadow = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].casts_shadow();
+                    ui.horizontal(|ui| {
+                        let mut casts_shadow = object.casts_shadow();
                         if ui.checkbox(&mut casts_shadow, "Casts shadow").changed() {
-                            self.world.write().unwrap().objects()[self.active_object.unwrap()].set_casts_shadow(casts_shadow);
+                            object.set_casts_shadow(casts_shadow);
                             self.prep_update();
-                        }
-                    }
+                        };
+                    });
                 });
+            },
+            _ => ()
+        }
+    }
+
+    fn show_transformation_panel(&mut self, ui: &mut egui::Ui) {
+        ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
+            ui.set_enabled(self.active_object.is_some());
+            let index = self.active_object.unwrap_or(usize::MAX);
+            ui.label("Object transformations");
+            ui.horizontal(|ui| {
+                ui.group(|ui| {
+                    self.transformation_drag_updater(0, ui, index != usize::MAX);
+                    self.transformation_drag_updater(1, ui, index != usize::MAX);
+                    self.transformation_drag_updater(2, ui, index != usize::MAX);
+                });
+                ui.label("Translation");
             });
 
-            // Interface for shape-specific attributes (min, max, end caps)
-            if self.active_object.is_some() {
-                let curr_shape = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].shape;
-                match curr_shape {
-                    Shape::Cone {min, max, closed} => self.shape_specific_interface(min, max, closed, ui),
-                    Shape::Cylinder {min, max, closed} => self.shape_specific_interface(min, max, closed, ui),
-                    _ => ()
-                };
-            }
-
-            ui.add(egui::Separator::default());
-
-            // Transformations
-            ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
-                ui.set_enabled(self.active_object.is_some());
-                let index = self.active_object.unwrap_or(usize::MAX);
-                ui.label("Object transformations");
-                ui.horizontal(|ui| {
-                    ui.group(|ui| {
-                        self.transformation_drag_updater(0, ui, index != usize::MAX);
-                        self.transformation_drag_updater(1, ui, index != usize::MAX);
-                        self.transformation_drag_updater(2, ui, index != usize::MAX);
-                    });
-                    ui.label("Translation");
+            ui.horizontal(|ui| {
+                ui.group(|ui| {
+                    self.transformation_drag_updater(3, ui, index != usize::MAX);
+                    self.transformation_drag_updater(4, ui, index != usize::MAX);
+                    self.transformation_drag_updater(5, ui, index != usize::MAX);
                 });
+                ui.label("Scaling");
+            });
 
-                ui.horizontal(|ui| {
-                    ui.group(|ui| {
-                        self.transformation_drag_updater(3, ui, index != usize::MAX);
-                        self.transformation_drag_updater(4, ui, index != usize::MAX);
-                        self.transformation_drag_updater(5, ui, index != usize::MAX);
-                    });
-                    ui.label("Scaling");
+            ui.horizontal(|ui| {
+                ui.group(|ui| {
+                    self.transformation_drag_updater(6, ui, index != usize::MAX);
+                    self.transformation_drag_updater(7, ui, index != usize::MAX);
+                    self.transformation_drag_updater(8, ui, index != usize::MAX);
                 });
+                ui.label("Rotation");
+            });
 
-                ui.horizontal(|ui| {
-                    ui.group(|ui| {
-                        self.transformation_drag_updater(6, ui, index != usize::MAX);
-                        self.transformation_drag_updater(7, ui, index != usize::MAX);
-                        self.transformation_drag_updater(8, ui, index != usize::MAX);
-                    });
-                    ui.label("Rotation");
-                });
+            ui.horizontal(|ui| {
+                ui.group(|ui| {
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            self.transformation_drag_updater(9, ui, index != usize::MAX);
+                            self.transformation_drag_updater(10, ui, index != usize::MAX);
+                            self.transformation_drag_updater(11, ui, index != usize::MAX);
+                        });
 
-                ui.horizontal(|ui| {
-                    ui.group(|ui| {
-                        ui.vertical(|ui| {
-                            ui.horizontal(|ui| {
-                                self.transformation_drag_updater(9, ui, index != usize::MAX);
-                                self.transformation_drag_updater(10, ui, index != usize::MAX);
-                                self.transformation_drag_updater(11, ui, index != usize::MAX);
-                            });
-
-                            ui.horizontal(|ui| {
-                                self.transformation_drag_updater(12, ui, index != usize::MAX);
-                                self.transformation_drag_updater(13, ui, index != usize::MAX);
-                                self.transformation_drag_updater(14, ui, index != usize::MAX);
-                            });
+                        ui.horizontal(|ui| {
+                            self.transformation_drag_updater(12, ui, index != usize::MAX);
+                            self.transformation_drag_updater(13, ui, index != usize::MAX);
+                            self.transformation_drag_updater(14, ui, index != usize::MAX);
                         });
                     });
-                    ui.label("Shearing");
                 });
+                ui.label("Shearing");
             });
         });
+    }
 
-        egui::SidePanel::right("object_list").show(ctx, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                let mut idx = 0;
-                for item in self.world.read().unwrap().read_objects() {
-                    ui.selectable_value(
-                        &mut self.active_object,
-                        Some(idx),
-                        format!("{}", item.shape)
-                    );
-                    idx += 1;
+    fn show_object_list(&mut self, ui: &mut egui::Ui, lock: &RwLockReadGuard<World>) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let mut idx = 0;
+            for item in lock.read_objects() {
+                match item {
+                    ObjectHolder::Object(object) => {
+                        ui.selectable_value(
+                            &mut self.active_object,
+                            Some(idx),
+                            format!("{}", object.shape)
+                        );
+                    }
+                    ObjectHolder::Group(group) => {
+                        ui.selectable_value(
+                            &mut self.active_object,
+                            Some(idx),
+                            format!("Group")
+                        );
+                    }
                 }
-            });
-        });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            egui::ScrollArea::new([true, true]).show(ui, |ui| {
-                if let Some((size, texture)) = self.last_preview {
-                    ui.image(texture, size);
-                }
-            });
-            egui::warn_if_debug_build(ui);
+                idx += 1;
+            }
         });
     }
-}
 
-impl RayTracer {
-    fn delete_active_object(&mut self) {
-        if let Some(index) = self.active_object {
-            self.world.write().unwrap().objects().remove(index);
-            match index {
-                0 => self.active_object = None,
-                _ => self.active_object = Some(index-1),
+    fn show_preview_image(&self, ui: &mut egui::Ui) {
+        egui::ScrollArea::new([true, true]).show(ui, |ui| {
+            if let Some((size, texture)) = self.last_preview {
+                ui.image(texture, size);
             }
-            self.prep_update();
-        }
-    }
-
-    fn update_preview(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
-        let curr_preview = self.preview_image.try_read();
-        if let Ok(image_lock) = curr_preview {
-            if image_lock.is_some() {
-                let image = image_lock.clone().unwrap();
-                let x = image.size[0] as f32;
-                let y = image.size[1] as f32;
-                let texture = frame.alloc_texture(image);
-                let size = egui::Vec2::new(x, y);
-                self.last_preview = Some((size, texture));
-                ctx.request_repaint();
-                frame.free_texture(texture);
-            }
-        }
-    }
-
-    fn prep_update(&mut self) {
-        self.preview_up_to_date.store(false, Ordering::Relaxed);
-    }
-
-    fn add_new_shape(&mut self, shape: Shape) {
-        let new = match shape {
-            Shape::Cone {min, max, closed} => cones::new(min, max, closed),
-            Shape::Cube => cubes::new(),
-            Shape::Cylinder {min, max, closed} => cylinders::new(min, max, closed),
-            Shape::Plane => planes::new(),
-            Shape::Sphere => spheres::new(),
-        };
-        self.world.write().unwrap().add_object(new);
-        self.active_object = Some(self.world.read().unwrap().read_objects().len()-1);
-        self.prep_update();
-    }
-
-    fn material_attribute_slider(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
-        if enabled {
-            let (mut orig, name, rng) = self.get_scalar_attribute_from_index(index);
-            if ui.add(egui::Slider::new(&mut orig, rng).text(name)).changed() {
-                self.set_scalar_attribute_from_index(index, orig);
-                self.prep_update();
-            }
-        } else {
-            let (name, rng) = self.scalar_attribute_spec(index);
-            ui.add(egui::Slider::new(&mut 0.0, rng).text(name));
-        }
-    }
-
-    fn get_scalar_attribute_from_index(&self, index: u8) -> (f64, &str, std::ops::RangeInclusive<f64>) {
-        let (name, rng) = self.scalar_attribute_spec(index);
-        match index {
-            0 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_ambient(), name, rng),
-            1 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_diffuse(), name, rng),
-            2 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_specular(), name, rng),
-            3 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shininess(), name, rng),
-            4 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_reflective(), name, rng),
-            5 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_refractive_index(), name, rng),
-            6 => (self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_transparency(), name, rng),
-            _ => (0.0, "", 0.0..=0.0)
-        }
-    }
-
-    fn scalar_attribute_spec(&self, index: u8) -> (&str, std::ops::RangeInclusive<f64>) {
-        match index {
-            0 => ("Ambient", 0.0..=1.0),
-            1 => ("Diffuse", 0.0..=1.0),
-            2 => ("Specular", 0.0..=1.0),
-            3 => ("Shininess", 0.0..=400.0),
-            4 => ("Reflective", 0.0..=1.0),
-            5 => ("Refractive Index", 0.0..=5.0),
-            6 => ("Transparency", 0.0..=1.0),
-            _ => ("", 0.0..=0.0)
-        }
-    }
-
-    fn set_scalar_attribute_from_index(&mut self, index: u8, value: f64) {
-        match index {
-            0 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_ambient(value),
-            1 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_diffuse(value),
-            2 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_specular(value),
-            3 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_shininess(value),
-            4 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_reflective(value),
-            5 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_refractive_index(value),
-            6 => self.world.write().unwrap().objects()[self.active_object.unwrap()].set_transparency(value),
-            _ => return
-        };
-    }
-
-    fn transformation_drag_updater(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool) {
-        if enabled {
-            let mut orig = self.get_transform_from_index(index);
-            if ui.add(egui::DragValue::new(&mut orig).speed(0.1)).changed() {
-                self.set_transform_from_index(index, orig);
-                self.prep_update();
-            }
-        } else {
-            ui.add(egui::DragValue::new(&mut 0.0).speed(0.1));
-        }
-    }
-
-    fn get_transform_from_index(&self, index: u8) -> f64 {
-        match index {
-            0 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_translate_x(),
-            1 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_translate_y(),
-            2 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_translate_z(),
-            3 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_scale_x(),
-            4 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_scale_y(),
-            5 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_scale_z(),
-            6 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_rotate_x().to_degrees(),
-            7 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_rotate_y().to_degrees(),
-            8 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_rotate_z().to_degrees(),
-            9 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shear_xy(),
-            10 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shear_xz(),
-            11 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shear_yx(),
-            12 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shear_yz(),
-            13 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shear_zx(),
-            14 => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].get_shear_zy(),
-            _ => 0.0
-        }
-    }
-
-    fn set_transform_from_index(&mut self, index: u8, value: f64) {
-        match index {
-            0 => self.world.write().unwrap().objects()[self.active_object.unwrap()].translate_x(value),
-            1 => self.world.write().unwrap().objects()[self.active_object.unwrap()].translate_y(value),
-            2 => self.world.write().unwrap().objects()[self.active_object.unwrap()].translate_z(value),
-            3 => self.world.write().unwrap().objects()[self.active_object.unwrap()].scale_x(value),
-            4 => self.world.write().unwrap().objects()[self.active_object.unwrap()].scale_y(value),
-            5 => self.world.write().unwrap().objects()[self.active_object.unwrap()].scale_z(value),
-            6 => self.world.write().unwrap().objects()[self.active_object.unwrap()].rotate_x(value.to_radians()),
-            7 => self.world.write().unwrap().objects()[self.active_object.unwrap()].rotate_y(value.to_radians()),
-            8 => self.world.write().unwrap().objects()[self.active_object.unwrap()].rotate_z(value.to_radians()),
-            9 => self.world.write().unwrap().objects()[self.active_object.unwrap()].shear_xy(value),
-            10 => self.world.write().unwrap().objects()[self.active_object.unwrap()].shear_xz(value),
-            11 => self.world.write().unwrap().objects()[self.active_object.unwrap()].shear_yx(value),
-            12 => self.world.write().unwrap().objects()[self.active_object.unwrap()].shear_yz(value),
-            13 => self.world.write().unwrap().objects()[self.active_object.unwrap()].shear_zx(value),
-            14 => self.world.write().unwrap().objects()[self.active_object.unwrap()].shear_zy(value),
-            _ => return,
-        };
-    }
-
-    fn shape_specific_interface(&mut self, min: f64, max: f64, closed: bool, ui: &mut egui::Ui) {
-        let mut new_min = min;
-        let mut new_max = max;
-        let mut new_closed = closed;
-
-        ui.add(egui::Separator::default());
-
-        ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
-            ui.label("Shape-specific attributes");
-            ui.horizontal(|ui| {
-                ui.add(egui::DragValue::new(&mut new_min).speed(0.1));
-                ui.label("Min");
-                ui.add(egui::DragValue::new(&mut new_max).speed(0.1));
-                ui.label("Max");
-                ui.add(egui::Checkbox::new(&mut new_closed, "Closed"));
-            });
         });
-
-        let shape = self.world.read().unwrap().read_objects()[self.active_object.unwrap()].shape;
-
-        if new_min != min {
-            let new_shape = match shape {
-                Shape::Cone {min: _, max, closed} => Shape::Cone {min: new_min, max, closed},
-                Shape::Cylinder {min: _, max, closed} => Shape::Cylinder {min: new_min, max, closed},
-                _ => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].shape,
-            };
-            self.world.write().unwrap().objects()[self.active_object.unwrap()].shape = new_shape;
-            self.prep_update();
-        };
-
-        if new_max != max {
-            let new_shape = match shape {
-                Shape::Cone {min, max: _, closed} => Shape::Cone {min, max: new_max, closed},
-                Shape::Cylinder {min, max: _, closed} => Shape::Cylinder {min, max: new_max, closed},
-                _ => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].shape,
-            };
-            self.world.write().unwrap().objects()[self.active_object.unwrap()].shape = new_shape;
-            self.prep_update();
-        }
-
-        if new_closed != closed {
-            let new_shape = match shape {
-                Shape::Cone {min, max, closed: _} => Shape::Cone {min, max, closed: new_closed},
-                Shape::Cylinder {min, max, closed: _} => Shape::Cylinder {min, max, closed: new_closed},
-                _ => self.world.read().unwrap().read_objects()[self.active_object.unwrap()].shape,
-            };
-            self.world.write().unwrap().objects()[self.active_object.unwrap()].shape = new_shape;
-            self.prep_update();
-        }
     }
 }

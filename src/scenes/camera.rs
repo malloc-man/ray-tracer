@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_ray_for_pixel_center() {
-        let mut c = Camera::new(201, 101, FRAC_PI_2);
+        let c = Camera::new(201, 101, FRAC_PI_2);
         let r = c.ray_for_pixel(100, 50);
 
         assert_eq!(r.get_origin(), origin());
