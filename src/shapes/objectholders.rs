@@ -79,6 +79,16 @@ impl ObjectHolder {
         }
     }
 
+    pub fn remove_from_group(&mut self, index: usize) -> Result<(), &str> {
+        match self {
+            ObjectHolder::Group(group) => {
+                group.mut_elements().remove(index);
+                Ok(())
+            }
+            _ => Err("Attempted to remove object from an object. Can only remove from group")
+        }
+    }
+
     pub fn get_object(&self) -> Result<&Object, &str> {
         match self {
             ObjectHolder::Object(object) => Ok(object),

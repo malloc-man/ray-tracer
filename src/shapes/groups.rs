@@ -59,6 +59,10 @@ impl Group {
         &self.group
     }
 
+    pub fn mut_elements(&mut self) -> &mut Vec<ObjectHolder> {
+        &mut self.group
+    }
+
     /* --------------------------- ray tracing calculations --------------------------- */
 
     pub fn intersect(&self, ray: Ray) -> Vec<Intersection> {

@@ -394,12 +394,56 @@ impl RayTracer {
                     if ui.button("New Group").clicked() {
                         self.add_new_group();
                     }
+
+                    ui.group(|ui| {
+                        ui.set_enabled(self.active_object.is_some() && self.get_active_object().unwrap().read().unwrap().is_group());
+                        ui.menu_button("Add objects to group", |ui| {
+                            let vec_objects = self.world.mut_objects();
+                            let mut remove: usize = usize::MAX;
+                            for (i, item) in vec_objects.iter().enumerate() {
+                                let obj = item.read();
+                                if obj.is_err() || Some(i) == self.active_object {
+                                    continue;
+                                }
+                                let object = obj.unwrap();
+                                if ui.button(format!("{}. {}", i+1, object)).clicked() {
+                                    vec_objects[self.active_object.unwrap()].write().unwrap().add_object_holder(object.clone());
+                                    remove = i;
+                                }
+                            }
+                            if remove != usize::MAX {
+                                vec_objects.remove(remove);
+                                self.active_object = Some(self.active_object.unwrap() - 1);
+                            }
+                        });
+                        ui.separator();
+                        ui.menu_button("Remove objects from group", |ui| {
+                            let mut world_objects = self.world.mut_objects();
+                            let mut active_group = world_objects[self.active_object.unwrap()].write().unwrap();
+                            let mut remove = usize::MAX;
+                            for (i, item) in active_group.get_group_members().unwrap().iter().enumerate() {
+                                if ui.button(format!("{}. {}", i+1, item)).clicked() {
+                                    remove = i;
+                                }
+                            };
+                            let mut removed_item = None;
+                            if remove != usize::MAX {
+                                removed_item = Some(active_group.get_group_members().unwrap()[remove].clone());
+                                active_group.remove_from_group(remove);
+                            };
+                            std::mem::drop(active_group);
+                            if removed_item.is_some() {
+                                world_objects.push(Arc::new(RwLock::new(removed_item.unwrap())));
+                            }
+                        });
+                    });
+
                     ui.group(|ui| {
                         ui.set_enabled(self.get_active_object().is_some());
                         if ui.button("Delete active object").clicked() {
                             self.delete_active_object();
                         };
-                    })
+                    });
                 });
             });
         });
@@ -747,12 +791,21 @@ impl RayTracer {
         let active_index = &mut self.active_object;
         egui::ScrollArea::vertical().show(ui, |ui| {
             for (i, item) in objects.iter().enumerate() {
+                let object = item.read().unwrap();
                 ui.selectable_value(
                     active_index,
                     Some(i),
-                    format!("{}", item.read().unwrap())
+                    if object.is_group() {
+                        let mut string = format!("{}. Group", i+1);
+                        for obj in object.get_group_members().unwrap() {
+                            string.push_str(&*format!("\n  - {}", obj))
+                        }
+                        string
+                    } else {
+                        format!("{}. {}", i+1, object)
+                    }
                 );
-            }
+            };
         });
     }
 
