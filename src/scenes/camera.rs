@@ -169,9 +169,7 @@ impl Camera {
         image
     }
 
-    pub fn parallel_render(&self, world: Arc<RwLock<World>>, tracker: Arc<AtomicUsize>) -> Canvas {
-        let world = world.read().unwrap();
-
+    pub fn parallel_render(&self, world: World, tracker: Arc<AtomicUsize>) -> Canvas {
         tracker.store(0, Ordering::Relaxed);
 
         println!("Beginning render...");
@@ -202,7 +200,7 @@ impl Camera {
         image
     }
 
-    pub fn preview_parallel_render(&self, world: RwLockReadGuard<World>) -> Canvas {
+    pub fn preview_parallel_render(&self, world: &World) -> Canvas {
         const BAND_SIZE: usize = 10;
         let mut image = Canvas::new(self.hsize, self.vsize);
         image
@@ -290,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_parallel_render_world() {
-        let w = Arc::new(RwLock::new(World::new_default()));
+        let w = World::new_default();
         let mut c = Camera::new(11, 11, FRAC_PI_2);
 
         let from = point(0.0, 0.0, -5.0);

@@ -2,16 +2,36 @@ use crate::prelude::*;
 
 pub const DEFAULT_RECURSION_DEPTH: usize = 5;
 
+#[derive(Clone)]
 pub struct World {
-    objects: Vec<ObjectHolder>,
-    lights: Vec<Light>,
+    objects: Vec<Arc<RwLock<ObjectHolder>>>,
+    lights: Vec<Arc<RwLock<Light>>>,
 }
 
 impl World {
-    pub fn new(objects: Vec<ObjectHolder>, lights: Vec<Light>) -> Self {
+    pub fn new(objects: Vec<Arc<RwLock<ObjectHolder>>>, lights: Vec<Arc<RwLock<Light>>>) -> Self {
         Self {
             objects,
             lights,
+        }
+    }
+
+    pub fn new_from_raw(objects: Vec<ObjectHolder>, lights: Vec<Light>) -> Self {
+        Self {
+            objects: {
+                let mut v = vec![];
+                for obj in objects {
+                    v.push(Arc::new(RwLock::new(obj)));
+                }
+                v
+            },
+            lights: {
+                let mut v = vec![];
+                for light in lights {
+                    v.push(Arc::new(RwLock::new(light)));
+                }
+                v
+            }
         }
     }
 
@@ -42,31 +62,44 @@ impl World {
 
         let lights = vec![light];
 
-        World::new(objects, lights)
-    }
-
-    pub fn add_object(&mut self, object: Object) {
-        self.objects.push(ObjectHolder::from_object(object));
-    }
-
-    pub fn add_group(&mut self, group: Group) {
-        self.objects.push(ObjectHolder::from_group(group));
+        World::new_from_raw(objects, lights)
     }
 
     pub fn add_object_holder(&mut self, element: ObjectHolder) {
-        self.objects.push(element);
+        self.objects.push(
+            Arc::new(
+                RwLock::new(
+                    element
+                )
+            )
+        );
     }
 
-    pub fn objects(&mut self) -> &mut Vec<ObjectHolder> {
+    pub fn add_object(&mut self, object: Object) {
+        self.add_object_holder(ObjectHolder::from_object(object));
+    }
+
+    pub fn add_group(&mut self, group: Group) {
+        self.add_object_holder(ObjectHolder::from_group(group));
+    }
+
+    pub fn objects(&self) -> &Vec<Arc<RwLock<ObjectHolder>>> {
+        &self.objects
+    }
+
+    pub fn mut_objects(&mut self) -> &mut Vec<Arc<RwLock<ObjectHolder>>> {
         &mut self.objects
     }
 
-    pub fn read_objects(&self) -> &Vec<ObjectHolder> { &self.objects }
+    pub fn add_light(&mut self, light: Light) {
+        self.lights.push(Arc::new(RwLock::new(light)));
+    }
 
     fn intersect_world(&self, ray: Ray) -> Vec<Intersection> {
         let mut intersections: Vec<Intersection> = vec![];
         for object in &self.objects {
-            let object_intersections = object.intersect(ray);
+            let object_lock = object.read().unwrap();
+            let object_intersections = object_lock.intersect(ray);
             intersections.extend(object_intersections.iter());
         }
         intersections.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -87,7 +120,7 @@ impl World {
 
     fn shade_hit(&self, comps: Computations, remaining: usize) -> Color {
         let shadowed = self.is_shadowed(comps.over_point);
-        let clr = lighting(comps.object.get_material(), comps.object, self.lights[0], comps.over_point, comps.eyev, comps.normalv, shadowed);
+        let clr = lighting(comps.object.get_material(), comps.object, *self.lights[0].read().unwrap(), comps.over_point, comps.eyev, comps.normalv, shadowed);
         let reflections = self.reflected_color(comps, remaining);
         let refractions = self.refracted_color(comps, remaining);
 
@@ -111,7 +144,8 @@ impl World {
     }
 
     pub fn is_shadowed(&self, point: Tuple) -> bool {
-        let vector = self.lights[0].get_position() - point;
+        let light = self.lights[0].read().unwrap();
+        let vector = light.get_position() - point;
         let distance = vector.magnitude();
         let ray = Ray::new(point, vector.normalize());
         let intersections = self.intersect_world(ray);
@@ -303,13 +337,13 @@ mod tests {
     fn test_shade_hit() {
         let w = World::new_default();
         let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
-        if let ObjectHolder::Object(shape) = w.objects[0] {
+        if let ObjectHolder::Object(shape) = *w.objects[0].read().unwrap() {
             let i = Intersection::new(4.0, shape);
             let comps = prepare_computations(i, r, &vec![i]);
             assert_eq!(w.shade_hit(comps, DEFAULT_RECURSION_DEPTH), color(0.38066, 0.47583, 0.2855));
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
@@ -317,36 +351,37 @@ mod tests {
         let w_default = World::new_default();
         let light = Light::new(point(0.0, 0.25, 0.0), white());
 
-        let w = World::new(w_default.objects, vec![light]);
+        let w = World::new(w_default.objects, vec![Arc::new(RwLock::new(light))]);
         let r = Ray::new(point(0.0, 0.0, 0.0), vector(0.0, 0.0, 1.0));
-        if let ObjectHolder::Object(shape) = w.objects[1] {
+        if let ObjectHolder::Object(shape) = *w.objects[1].read().unwrap() {
             let i = Intersection::new(0.5, shape);
             let comps = prepare_computations(i, r, &vec![i]);
             assert_eq!(w.shade_hit(comps, DEFAULT_RECURSION_DEPTH), color(0.90498, 0.90498, 0.90498));
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
     fn test_shade_hit_in_shadow() {
-        let mut w = World::new(vec![], vec![]);
-        w.lights.push(Light::new(point(0.0, 0.0, -10.0), white()));
-        w.objects.push(ObjectHolder::from_object(spheres::new()));
-        w.objects.push(ObjectHolder::from_object(spheres::new()));
+        let mut w = World::new_from_raw(vec![], vec![]);
+        w.add_light(Light::new(point(0.0, 0.0, -10.0), white()));
+        w.add_object(spheres::new());
+        w.add_object(spheres::new());
 
-        w.objects[1].set_transform(Matrix4::identity().translate(0.0, 0.0, 10.0));
+        let objs = w.objects();
+        objs[1].write().unwrap().set_transform(Matrix4::identity().translate(0.0, 0.0, 10.0));
 
         let ray = Ray::new(point(0.0, 0.0, 5.0), vector(0.0, 0.0, 1.0));
 
-        if let ObjectHolder::Object(shape) = w.objects[1] {
+        if let ObjectHolder::Object(shape) = *w.objects()[1].read().unwrap() {
             let i = Intersection::new(4.0, shape);
             let comps = prepare_computations(i, ray, &vec![i]);
             let c = w.shade_hit(comps, DEFAULT_RECURSION_DEPTH);
             assert_eq!(c, color(0.1, 0.1, 0.1));
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
@@ -368,29 +403,29 @@ mod tests {
     #[test]
     fn test_color_at_inside_sphere() {
         let mut w = World::new_default();
-        if let ObjectHolder::Object(ref mut obj1) = w.objects[0] {
+        if let ObjectHolder::Object(ref mut obj1) = *w.objects[0].write().unwrap() {
             let mut sph1_material = obj1.get_material();
             sph1_material.set_ambient(1.0);
             obj1.set_material(sph1_material);
         } else {
             panic!();
-        }
+        };
 
-        if let ObjectHolder::Object(ref mut obj2) = w.objects[1] {
+        if let ObjectHolder::Object(ref mut obj2) = *w.objects[1].write().unwrap() {
             let mut sph2_material = obj2.get_material();
             sph2_material.set_ambient(1.0);
             obj2.set_material(sph2_material);
         } else {
             panic!();
-        }
+        };
 
-        if let ObjectHolder::Object(obj2) = w.objects[1] {
+        if let ObjectHolder::Object(obj2) = *w.objects[1].read().unwrap() {
             let r = Ray::new(point(0.0, 0.0, 0.75), vector(0.0, 0.0, -1.0));
             let c = w.color_at(r, DEFAULT_RECURSION_DEPTH);
             assert_eq!(c, obj2.get_color());
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
@@ -421,7 +456,7 @@ mod tests {
     fn test_reflected_color_of_nonreflective_surface() {
         let mut w = World::new_default();
         let r = Ray::new(origin(), vector(0.0, 0.0, 1.0));
-        if let ObjectHolder::Object(shape) = &mut w.objects[1] {
+        if let ObjectHolder::Object(ref mut shape) = *w.objects[1].write().unwrap() {
             shape.set_ambient(1.0);
 
             let i = Intersection::new(1.0, *shape);
@@ -431,7 +466,7 @@ mod tests {
             assert_eq!(color, black());
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
@@ -534,7 +569,7 @@ mod tests {
     #[test]
     fn test_refractive_color_opaque() {
         let mut w = World::new_default();
-        if let ObjectHolder::Object(shape) = &mut w.objects[0] {
+        if let ObjectHolder::Object(ref mut shape) = *w.objects[0].write().unwrap() {
             let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
             let xs = vec![
                 Intersection::new(4.0, *shape),
@@ -544,13 +579,13 @@ mod tests {
             assert_eq!(c, black());
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
     fn test_refracted_color_max_recursive_depth() {
         let w = World::new_default();
-        if let ObjectHolder::Object(shape) = w.objects[0] {
+        if let ObjectHolder::Object(shape) = *w.objects[0].write().unwrap() {
             let r = Ray::new(point(0.0, 0.0, -5.0), vector(0.0, 0.0, 1.0));
             let xs = vec![
                 Intersection::new(4.0, shape),
@@ -560,13 +595,13 @@ mod tests {
             assert_eq!(c, black());
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
     fn test_total_internal_reflection() {
         let w = World::new_default();
-        if let ObjectHolder::Object(shape) = w.objects[0] {
+        if let ObjectHolder::Object(shape) = *w.objects[0].write().unwrap() {
             let r = Ray::new(point(0.0, 0.0, FRAC_1_SQRT_2), vector(0.0, 1.0, 0.0));
             let xs = vec![
                 Intersection::new(-FRAC_1_SQRT_2, shape),
@@ -576,22 +611,22 @@ mod tests {
             assert_eq!(c, black());
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
     fn test_refraction() {
         let mut w = World::new_default();
-        if let ObjectHolder::Object(ref mut shape1) = w.objects[0] {
+        if let ObjectHolder::Object(ref mut shape1) = *w.objects[0].write().unwrap() {
             shape1.set_ambient(1.0);
             shape1.set_pattern(test_pattern());
-        }
-        if let ObjectHolder::Object(ref mut shape2) = w.objects[1] {
+        };
+        if let ObjectHolder::Object(ref mut shape2) = *w.objects[1].write().unwrap() {
             shape2.set_transparency(1.0);
             shape2.set_refractive_index(1.5);
-        }
-        if let ObjectHolder::Object(shape1) = w.objects[0] {
-            if let ObjectHolder::Object(shape2) = w.objects[1] {
+        };
+        if let ObjectHolder::Object(shape1) = *w.objects[0].read().unwrap() {
+            if let ObjectHolder::Object(shape2) = *w.objects[1].read().unwrap() {
                 let r = Ray::new(point(0.0, 0.0, 0.1), vector(0.0, 1.0, 0.0));
                 let xs = vec![
                     Intersection::new(-0.9899, shape1),
@@ -603,10 +638,10 @@ mod tests {
                 assert_eq!(c, color(0.0, 0.99887, 0.04722));
             } else {
                 panic!();
-            }
+            };
         } else {
             panic!();
-        }
+        };
     }
 
     #[test]
