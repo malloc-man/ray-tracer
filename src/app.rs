@@ -133,7 +133,7 @@ impl epi::App for RayTracer {
         });
 
         let arc_img = self.preview_image.clone();
-        self.update_preview(frame, arc_img.write().unwrap());
+        self.update_preview(frame, arc_img.read().unwrap());
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.show_preview_image(ui);
@@ -162,7 +162,7 @@ impl RayTracer {
         }
     }
 
-    fn update_preview(&mut self, frame: &epi::Frame, curr_preview: RwLockWriteGuard<Option<epi::Image>>) {
+    fn update_preview(&mut self, frame: &epi::Frame, curr_preview: RwLockReadGuard<Option<epi::Image>>) {
         if let Some(image) = curr_preview.as_ref() {
             let x = image.size[0] as f32;
             let y = image.size[1] as f32;
