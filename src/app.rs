@@ -1,7 +1,7 @@
 use eframe::{egui, epi};
 use crate::prelude::*;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::RwLockWriteGuard;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use crate::egui::Align;
 
 pub struct RayTracer {
@@ -10,10 +10,12 @@ pub struct RayTracer {
     active_object: Option<usize>,
     last_preview: Option<(egui::Vec2, egui::TextureId)>,
     preview_up_to_date: Arc<AtomicBool>,
+    thread_just_finished_preview: Arc<AtomicBool>,
     rendering: Arc<AtomicBool>,
     rendering_progress: Arc<AtomicUsize>,
     preview_image: Arc<RwLock<Option<epi::Image>>>,
     preview_camera: Arc<RwLock<Camera>>,
+    world_sender: std::sync::mpsc::Sender<World>,
 }
 
 impl Default for RayTracer {
@@ -24,6 +26,11 @@ impl Default for RayTracer {
             active_object: None,
             last_preview: None,
             preview_up_to_date: Arc::new(
+                AtomicBool::new(
+                    false
+                )
+            ),
+            thread_just_finished_preview: Arc::new(
                 AtomicBool::new(
                     false
                 )
@@ -49,6 +56,7 @@ impl Default for RayTracer {
                     )
                 )
             ),
+            world_sender: std::sync::mpsc::channel().0,
         };
 
         new.camera.set_from(point(0.0, 1.5, -5.0));
@@ -80,21 +88,29 @@ impl epi::App for RayTracer {
         let up_to_date = self.preview_up_to_date.clone();
         let img_arc = self.preview_image.clone();
         let cam_arc = self.preview_camera.clone();
+        let just_finished = self.thread_just_finished_preview.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.world_sender = tx;
 
         // Thread that handles rendering the preview image.
         std::thread::spawn(move || {
             loop {
                 if !up_to_date.load(Ordering::Relaxed) {
-                    let mut img_lock = img_arc.write().unwrap();
-                    let cam = *cam_arc.read().unwrap();
-                    let buffer = cam.preview_parallel_render(&world).canvas_to_buffer();
-                    let size = [cam.get_hsize() as usize, cam.get_vsize() as usize];
-                    let image = epi::Image::from_rgba_unmultiplied(size, &buffer.into_vec());
-                    img_lock.insert(image);
-                    up_to_date.store(true, Ordering::Relaxed);
+                    if let Ok(wd) = rx.try_recv() {
+                        let mut img_lock = img_arc.write().unwrap();
+                        let cam = *cam_arc.read().unwrap();
+                        let buffer = cam.preview_parallel_render(wd).canvas_to_buffer();
+                        let size = [cam.get_hsize() as usize, cam.get_vsize() as usize];
+                        let image = epi::Image::from_rgba_unmultiplied(size, &buffer.into_vec());
+                        img_lock.insert(image);
+                        up_to_date.store(true, Ordering::Relaxed);
+                        just_finished.store(true, Ordering::Relaxed);
+                    }
                 };
             }
         });
+
+        self.world_sender.send(world);
     }
 
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
@@ -113,8 +129,8 @@ impl epi::App for RayTracer {
                 match *curr_obj {
                     ObjectHolder::Object(object) => {
                         match object.shape {
-                            Shape::Cone {min: _, max: _, closed: _} => &self.shape_specific_interface(ui),
-                            Shape::Cylinder {min: _, max: _, closed: _} => &self.shape_specific_interface(ui),
+                            Shape::Cone {min: _, max: _, closed: _} => &self.shape_specific_interface(ui, curr_obj),
+                            Shape::Cylinder {min: _, max: _, closed: _} => &self.shape_specific_interface(ui, curr_obj),
                             _ => &(),
                         };
                     },
@@ -164,17 +180,24 @@ impl RayTracer {
 
     fn update_preview(&mut self, frame: &epi::Frame, curr_preview: RwLockReadGuard<Option<epi::Image>>) {
         if let Some(image) = curr_preview.as_ref() {
-            let x = image.size[0] as f32;
-            let y = image.size[1] as f32;
-            let texture = frame.alloc_texture(image.clone());
-            let size = egui::Vec2::new(x, y);
-            self.last_preview = Some((size, texture));
-            frame.free_texture(texture);
+            if self.thread_just_finished_preview.load(Ordering::Relaxed) {
+                if let Some((img, tex)) = self.last_preview {
+                    frame.free_texture(tex);
+                }
+                let x = image.size[0] as f32;
+                let y = image.size[1] as f32;
+                let texture = frame.alloc_texture(image.clone());
+                let size = egui::Vec2::new(x, y);
+                self.last_preview = Some((size, texture));
+                self.thread_just_finished_preview.store(false, Ordering::Relaxed);
+            };
         }
     }
 
     fn prep_update(&mut self) {
         self.preview_up_to_date.store(false, Ordering::Relaxed);
+        let wd = self.world.clone();
+        self.world_sender.send(wd);
     }
 
     fn add_new_shape(&mut self, shape: Shape) {
@@ -192,7 +215,6 @@ impl RayTracer {
     fn add_new_group(&mut self) {
         let grp = Group::new_empty();
         self.world.add_group(grp);
-        self.prep_update();
     }
 
     fn material_attribute_slider(&mut self, index: u8, ui: &mut egui::Ui, enabled: bool, object: &mut Object) {
@@ -310,9 +332,8 @@ impl RayTracer {
         }
     }
 
-    fn shape_specific_interface(&mut self, ui: &mut egui::Ui) {
+    fn shape_specific_interface(&mut self, ui: &mut egui::Ui, mut curr_obj: RwLockWriteGuard<ObjectHolder>) {
         if let Some(arc_object) = self.get_active_object() {
-            let mut curr_obj = arc_object.write().unwrap();
             if let ObjectHolder::Object(ref mut obj) = *curr_obj {
                 match obj.shape {
                     Shape::Cone {ref mut min, ref mut max, ref mut closed} => {
@@ -407,7 +428,10 @@ impl RayTracer {
                                 }
                                 let object = obj.unwrap();
                                 if ui.button(format!("{}. {}", i+1, object)).clicked() {
-                                    vec_objects[self.active_object.unwrap()].write().unwrap().add_object_holder(object.clone());
+                                    let group_index = self.active_object.unwrap();
+                                    let group = vec_objects[group_index].clone();
+                                    let mut group_lock = group.write().unwrap();
+                                    group_lock.add_object_holder(object.clone());
                                     remove = i;
                                 }
                             }

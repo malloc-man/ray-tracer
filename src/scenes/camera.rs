@@ -200,7 +200,7 @@ impl Camera {
         image
     }
 
-    pub fn preview_parallel_render(&self, world: &World) -> Canvas {
+    pub fn preview_parallel_render(&self, world: World) -> Canvas {
         const BAND_SIZE: usize = 10;
         let mut image = Canvas::new(self.hsize, self.vsize);
         image
